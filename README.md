@@ -1,6 +1,11 @@
-# Manning Platform Engineering Tutor (rag-tutor)
+# Universal Technical RAG Tutor (rag-tutor)
 
-Tutor de Inteligencia Artificial Local especializado en libros técnicos de Manning (Ingeniería de Plataformas, Kubernetes Internals, Operadores en Go, Crossplane y Arquitecturas Cloud-Native).
+Tutor de Inteligencia Artificial Local agnóstico y universal para libros técnicos (Ingeniería de Software, Kubernetes, Bases de Datos, Rust, Platform Engineering, IA y Arquitecturas Cloud-Native).
+
+> [!IMPORTANT]
+> **Filosofía BYOB (Bring Your Own Books) y Universalidad:**
+> - **Tú aportas tus propios libros:** El repositorio es un motor de software 100% de código abierto y **no incluye libros con derechos de autor**; el directorio `books/` viene intencionalmente vacío.
+> - **Funciona para CUALQUIER libro técnico:** Aunque los casos de prueba de referencia se validaron con 22 fuentes de Cloud-Native y Platform Engineering, el motor es agnóstico: puedes colocar libros de **Bases de Datos (PostgreSQL, Redis)**, **Frontend (React, TypeScript)**, **Sistemas (Rust, Go, C++)**, **Ciberseguridad**, **Redes** o manuales internos de tu empresa. El sistema los auto-perfila y clasifica automáticamente.
 
 Implementa una **arquitectura híbrida (Vectorial + BM25 con Reranker)**, un **loop de razonamiento agéntico liviano** y **exposición dual (Servidor MCP + API REST)**, diseñada de forma desacoplada para evolucionar iterativamente hacia **Omnigraph (GraphRAG)**.
 
@@ -127,8 +132,8 @@ Si no defines ningún token, el código suprime automáticamente las advertencia
    pip install -r requirements.txt
    ```
 
-3. **Colocar tus libros de Manning:**
-   - Copia tus archivos `.pdf` dentro del directorio `books/`.
+3. **Colocar tus libros técnicos (Cualquier tema / editorial):**
+   - Copia tus archivos `.pdf` dentro del directorio `books/` (el sistema es agnóstico: bases de datos, frontend, cloud, etc., y auto-clasificará todo).
 
 4. **Ejecutar la Ingesta e Indexación:**
    ```bash

@@ -64,4 +64,4 @@ En cumplimiento con el principio de explicabilidad, cada interacción con el Tut
 ## 4. Licencia y Uso Ético
 
 - **Código del Proyecto:** Distribuido bajo la **Licencia Apache 2.0** (código abierto, permisivo, para uso personal, educativo y comercial). Ver [LICENSE](LICENSE).
-- **Material Bibliográfico:** Los libros técnicos colocados en `books/` son propiedad intelectual de sus respectivos autores y editoriales (Manning Publications, etc.). El sistema está diseñado para uso personal de estudio (*fair use* / copia privada para indexación local en la propia máquina del usuario).
+- **Material Bibliográfico (Filosofía BYOB - Bring Your Own Books):** El repositorio **NO distribuye, aloja ni incluye libros, PDFs ni contenido protegido por derechos de autor**. Cada usuario aporta sus propios libros técnicos legalmente adquiridos colocándolos en `books/`. El software actúa exclusivamente como un indexador y tutor local privado (*fair use* / copia de estudio personal). El motor es 100% universal y soporta cualquier libro técnico de cualquier editorial o temática (Bases de datos, Cloud, Web, Rust, Python, DevOps, Ciberseguridad, etc.).
