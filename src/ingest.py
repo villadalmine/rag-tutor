@@ -2,8 +2,19 @@
 
 import os
 import pickle
+import sys
 from pathlib import Path
-from typing import List
+
+# Configurar encoding UTF-8 en consola de Windows
+if sys.stdout:
+    sys.stdout.reconfigure(encoding="utf-8")
+if sys.stderr:
+    sys.stderr.reconfigure(encoding="utf-8")
+
+# Permitir ejecución tanto directa como vía módulo
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
 
 from src import config
 
@@ -92,7 +103,7 @@ def run_ingestion():
         embedding=embeddings,
         persist_directory=str(config.CHROMA_DIR),
     )
-    print(f"[✓] ChromaDB guardado exitosamente en: {config.CHROMA_DIR}")
+    print(f"[OK] ChromaDB guardado exitosamente en: {config.CHROMA_DIR}")
 
     # 2. Generación e Indexación Léxica BM25
     print("\n[+] Construyendo índice BM25 para coincidencia exacta de código y comandos...")
@@ -113,7 +124,7 @@ def run_ingestion():
     with open(config.BM25_INDEX_PATH, "wb") as f:
         pickle.dump({"bm25": bm25, "corpus": corpus_entries}, f)
 
-    print(f"[✓] Índice BM25 guardado exitosamente en: {config.BM25_INDEX_PATH}")
+    print(f"[OK] Índice BM25 guardado exitosamente en: {config.BM25_INDEX_PATH}")
     print("\n" + "=" * 60)
     print(" ¡Ingesta completada con éxito!")
     print(" Ahora puedes iniciar el servidor MCP ('python src/mcp_server.py')")

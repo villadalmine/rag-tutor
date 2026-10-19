@@ -22,7 +22,7 @@ RERANKER_MODEL_NAME = os.getenv(
 
 # Configuración de Ollama (Inferencia Local)
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
 
 # Configuración de Chunking (Optimizado para código y YAML)
