@@ -46,6 +46,7 @@ rag-tutor/
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
 ├── USE_CASES_AND_EXAMPLES.md  # Step-by-step setup walkthrough and real terminal outputs
+├── RESEARCH_AND_LESSONS_LEARNED.md # Multi-MCP orchestration research, challenges & solutions
 ├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparency, traceability, and guardrails (EU AI Act)
 ├── VERIFICATION_TESTS.md      # Empirical verification test report and reproduction steps
 ├── LICENSE                    # Apache 2.0 Open Source License
@@ -283,6 +284,17 @@ Read the full disclosure and policy in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISC
 All claims regarding sub-350ms pre-LLM latency, dilution mitigation across 23,343 chunks, and exact page citation fidelity have been empirically validated on local hardware.
 
 Read the execution logs, model telemetry, and reproduction instructions in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+
+---
+
+## Multi-MCP Research, Architecture & Lessons Learned
+
+For an in-depth analysis of how autonomous agents can coordinate multiple MCP servers (`study-cybercirujas`, `k8s-docs-mcp`, and `rag-tutor`) without tool collisions, context bloat, or hallucinations, consult **[RESEARCH_AND_LESSONS_LEARNED.md](RESEARCH_AND_LESSONS_LEARNED.md)**. It covers:
+1. **The Core Multi-MCP Problem:** Why free-wheeling ReAct loops hallucinate and fail in production.
+2. **The Separation of Powers Contract:** Semantic boundary allocation between Syllabus, Specification, and Architecture.
+3. **Key Implementations:** SHA-256 incremental hashing, embedded KùzuDB Cypher engine, Hugo shortcode preprocessors, and SQLite FTS5 stores.
+4. **Behind-the-Scenes Hurdles:** Resolving batch insert limits, UTF-8 Windows stream encoding, and deterministic OpenAPI schema validation.
+5. **Research Scope Notice:** Clear framing of this project as an educational proof-of-concept for sovereign information access.
 
 ---
 
