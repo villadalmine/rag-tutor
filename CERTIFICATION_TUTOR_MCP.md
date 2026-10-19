@@ -1,52 +1,52 @@
-# Guía de Integración: Open WebUI + MCP Multi-Server (RAG Tutor + Study Cybercirujas)
+# Multi-MCP Integration Guide: Open WebUI + Study Cybercirujas + RAG Tutor
 
-Esta guía explica cómo conectar **Open WebUI** con dos servidores MCP simultáneos para crear el **"Tutor Mágico de Certificaciones y Arquitectura"**, 100% local, soberano y sin costo de APIs:
+This guide explains how to connect **Open WebUI** with two simultaneous Model Context Protocol (MCP) servers to create an autonomous, 100% sovereign, and zero-cost **"Certification & Architecture AI Tutor"**:
 
-1. 📚 **RAG Tutor MCP (`rag-tutor`):** Base de conocimiento profunda con 22 libros técnicos, recuperación híbrida (Chroma + BM25), reranking con Cross-Encoder y citas exactas de páginas.
-2. 🎯 **Study Cybercirujas MCP (`study-cybercirujas`):** Plataforma abierta de certificaciones IT (CKA, CKAD, CKS, LPIC, etc.) con syllabus oficial de vendors, ejercicios y laboratorios de rotura/reparación (*break-and-fix labs*).
+1. 📚 **RAG Tutor MCP (`rag-tutor`):** Deep technical knowledge base covering 22+ engineering books, hybrid retrieval (ChromaDB + BM25), Cross-Encoder reranking, and exact page citations.
+2. 🎯 **Study Cybercirujas MCP (`study-cybercirujas`):** Open IT certification platform (CKA, CKAD, CKS, LPIC, Azure, AWS) with official frozen vendor syllabi, practice exercises, and automated *break-and-fix labs*.
 
 ---
 
-## 1. Arquitectura del Sistema Multi-MCP
+## 1. Multi-MCP System Architecture
 
 ```mermaid
 flowchart TD
-    User["Estudiante / Ingeniero"] -->|1. 'Prepárame para el objetivo 2.1 de CKA sobre Admission Controllers'| UI["Open WebUI / Claude Desktop\n(Orquestador MCP y UI de Chat)"]
+    User["Student / Engineer"] -->|1. 'Prepare me for CKA Objective 2.1 on Admission Controllers'| UI["Open WebUI / Claude Desktop\n(MCP Host & Chat Interface)"]
     
-    subgraph Orquestación de Herramientas MCP
+    subgraph Multi-Server MCP Tool Orchestration
         UI -->|Tool Call: get_topic('cka', '2.1')| MCP_CYBER["MCP Server: study-cybercirujas\n(teach.mcp_server)"]
         UI -->|Tool Call: consultar_libros_manning('Admission Controllers')| MCP_RAG["MCP Server: rag-tutor\n(src/mcp_server.py)"]
         
-        MCP_CYBER -->|Devuelve Syllabus oficial + Ejercicios + Lab break-fix| UI
-        MCP_RAG -->|Devuelve Teoría profunda + Manifiestos YAML + Páginas de libros| UI
+        MCP_CYBER -->|Returns Official Syllabus + Exercises + Break-Fix Lab| UI
+        MCP_RAG -->|Returns Deep Architecture + YAML Manifests + Exact Book Citations| UI
     end
     
-    UI -->|Inferencia combinada con Ollama qwen2.5:7b| LLM["Modelo Local (Ollama)"]
-    LLM -->|3. Respuesta Integral: Temario + Ejercicio + Fundamento de Libros| User
+    UI -->|Combined context prompt to local Ollama qwen2.5:7b| LLM["Local LLM (Ollama)"]
+    LLM -->|3. Comprehensive Synthesis: Exam Topic + Practical Lab + Deep Theory| User
 ```
 
 ---
 
-## 2. Herramientas Expuestas por Ambos Servidores MCP
+## 2. Tools Exposed by Both MCP Servers
 
-Ambos servidores están construidos con el SDK oficial `mcp` (v2.x `MCPServer`) y se comunican a través del protocolo estándar `stdio`:
+Both servers are implemented using the official Anthropic / Linux Foundation `mcp` SDK (v2.x `MCPServer`) over standard `stdio` JSON-RPC:
 
-### Servidor 1: `study-cybercirujas` (Certificaciones & Labs)
-- `list_certs()`: Lista las 28+ certificaciones disponibles (CKA, CKAD, CKS, LPIC-1, KCNA, etc.).
-- `get_syllabus(cert: str)`: Devuelve los objetivos oficiales del vendor con ponderaciones en el examen.
-- `get_topic(cert: str, topic: str, lang: str)`: Obtiene la teoría oficial, ejercicios prácticos y el script del laboratorio break-and-fix.
-- `search_topics(query: str)`: Búsqueda cruzada de objetivos en todas las certificaciones.
+### Server 1: `study-cybercirujas` (Certifications & Labs)
+- `list_certs()`: Lists all 28+ available certifications (CKA, CKAD, CKS, LPIC-1, KCNA, etc.).
+- `get_syllabus(cert: str)`: Returns official exam objectives, domain weights, and language availability.
+- `get_topic(cert: str, topic: str, lang: str)`: Returns official theory, exercises, and the break-and-fix shell lab script.
+- `search_topics(query: str)`: Keyword search across titles and objectives in all certifications.
 
-### Servidor 2: `rag-tutor` (Base de Conocimiento de Libros & Código)
-- `consultar_libros_manning(pregunta: str, dominio: str, solo_codigo: bool)`: Búsqueda híbrida y razonamiento agéntico sobre los 22 libros con citas de página.
-- `buscar_codigo_yaml(termino: str)`: Extracción léxica directa de manifiestos YAML y código sin interpretación del LLM.
+### Server 2: `rag-tutor` (Engineering Knowledge Base & Code Retrieval)
+- `consultar_libros_manning(pregunta: str, dominio: str, solo_codigo: bool)`: Hybrid retrieval and agentic reflection loop over the technical books with exact page citations.
+- `buscar_codigo_yaml(termino: str)`: Exact lexical search for YAML manifests, CRDs, CLI commands, and Go snippets without LLM distortion.
 
 ---
 
-## 3. Configuración Paso a Paso en Open WebUI y Clientes MCP
+## 3. Configuration Setup in Open WebUI & MCP Clients
 
-### Opción A: Configuración en Claude Desktop o Goose CLI (`claude_desktop_config.json`)
-Copia esta configuración en `%APPDATA%\Claude\claude_desktop_config.json`:
+### Option A: Configuration in Claude Desktop or Goose CLI (`claude_desktop_config.json`)
+Add both servers to `%APPDATA%\Claude\claude_desktop_config.json`:
 
 ```json
 {
@@ -63,32 +63,32 @@ Copia esta configuración en `%APPDATA%\Claude\claude_desktop_config.json`:
         "-m",
         "teach.mcp_server"
       ],
-      "cwd": "C:\\ruta\\a\\study-cybercirujas"
+      "cwd": "C:\\path\\to\\study-cybercirujas"
     }
   }
 }
 ```
 
-### Opción B: Integración en Open WebUI
-En **Open WebUI**, puedes conectar los servidores de dos formas:
-1. **Vía Open WebUI MCPO / Pipes:** Habilitando la conexión a servidores MCP en la sección *Workspace -> Tools* de Open WebUI.
-2. **Vía API REST de RAG Tutor:** Conectando `http://localhost:8000/chat` como un conector OpenAPI nativo en Open WebUI.
+### Option B: Integration in Open WebUI
+In **Open WebUI**, connect the servers via:
+1. **Open WebUI MCPO / Pipes:** Enable MCP server connections under *Workspace -> Tools* in Open WebUI.
+2. **Native OpenAPI REST Connection:** Connect `http://localhost:8000/chat` directly as an OpenAPI connector in Open WebUI.
 
 ---
 
-## 4. Ejemplo Real de Simulación: "Tutor Mágico para Certificar"
+## 4. End-to-End Simulation: The Certification Study Tutor
 
-### Consulta del Usuario en Open WebUI:
-> *"Quiero estudiar el tema de Admission Controllers para la certificación CKA. Dame el objetivo oficial, el ejercicio de práctica de Cybercirujas y explícame en detalle con los libros cómo implementarlo con código YAML y OPA Gatekeeper."*
+### User Prompt in Open WebUI:
+> *"I want to study Admission Controllers for the CKA certification. Give me the official exam objective, the practice exercise from Cybercirujas, and explain in detail using the engineering books how to implement it with YAML manifests and OPA Gatekeeper."*
 
-### Flujo de Ejecución Interno (Comprobado):
-1. **Llamada 1 (Cybercirujas):** Open WebUI invoca `get_topic("cka", "2.1", "es")`.
-   - Recupera el objetivo oficial de CNCF: *"Understand Admission Controllers and Webhooks"*.
-   - Recupera el ejercicio práctico de laboratorio.
-2. **Llamada 2 (RAG Tutor):** Open WebUI invoca `consultar_libros_manning("Admission Controllers validación y OPA Gatekeeper")`.
-   - Recupera los fragmentos de los libros de Kubernetes Core y Platform Engineering (Pág. 286 de Core K8s y Págs. 122, 127 de Platform Engineering).
-   - Extrae el manifiesto YAML de configuración del webhook y el flujo de `image.sha`.
-3. **Respuesta Sintetizada del Modelo Local:**
-   - Presenta el temario oficial del examen.
-   - Entrega el ejercicio y escenario de rotura para practicar.
-   - Enseña la arquitectura exacta fundamentada con la cita del libro y el YAML verificado.
+### Empirical Execution Flow:
+1. **Tool Invocation 1 (Cybercirujas):** Open WebUI calls `get_topic("cka", "2.1", "en")`.
+   - Retrieves the official CNCF syllabus objective: *"Understand Admission Controllers and Webhooks"*.
+   - Retrieves the hands-on break-and-fix lab scenario.
+2. **Tool Invocation 2 (RAG Tutor):** Open WebUI calls `consultar_libros_manning("Admission Controllers validation and OPA Gatekeeper")`.
+   - Retrieves relevant chunks from **Core Kubernetes (Page 286)** and **Effective Platform Engineering (Pages 122, 127)**.
+   - Extracts the exact webhook configuration YAML manifest and the `image.sha` validation flow.
+3. **Local LLM Synthesis:**
+   - Presents the official exam syllabus context.
+   - Provides the hands-on lab break scenario.
+   - Delivers in-depth engineering theory with verified page citations and executable YAML.

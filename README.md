@@ -1,205 +1,206 @@
 # Universal Technical RAG Tutor (rag-tutor)
 
-Tutor de Inteligencia Artificial Local agnóstico y universal para libros técnicos (Ingeniería de Software, Kubernetes, Bases de Datos, Rust, Platform Engineering, IA y Arquitecturas Cloud-Native).
+Agnostic, sovereign local AI tutor for technical books (Software Engineering, Kubernetes Internals, Databases, Systems Programming in Rust/Go, Platform Engineering, AI Agents, and Cloud-Native Architectures).
 
 > [!IMPORTANT]
-> **Filosofía BYOB (Bring Your Own Books) y Universalidad:**
-> - **Tú aportas tus propios libros:** El repositorio es un motor de software 100% de código abierto y **no incluye libros con derechos de autor**; el directorio `books/` viene intencionalmente vacío.
-> - **Funciona para CUALQUIER libro técnico:** Aunque los casos de prueba de referencia se validaron con 22 fuentes de Cloud-Native y Platform Engineering, el motor es agnóstico: puedes colocar libros de **Bases de Datos (PostgreSQL, Redis)**, **Frontend (React, TypeScript)**, **Sistemas (Rust, Go, C++)**, **Ciberseguridad**, **Redes** o manuales internos de tu empresa. El sistema los auto-perfila y clasifica automáticamente.
+> **BYOB (Bring Your Own Books) Philosophy & Universal Applicability:**
+> - **You bring your own books:** This repository is a 100% open-source software engine and **does not distribute, host, or bundle copyrighted books**; the `books/` directory is intentionally empty.
+> - **Works with ANY technical book:** While the initial reference benchmark was validated with 22 sources covering Cloud-Native and Platform Engineering, the engine is completely agnostic: you can drop in books on **Databases (PostgreSQL, Redis)**, **Frontend (React, TypeScript)**, **Low-level Systems (Rust, Go, C++)**, **Cybersecurity**, **Networking**, or internal engineering handbooks. The system auto-profiles and auto-classifies them on first ingestion.
 
-Implementa una **arquitectura híbrida (Vectorial + BM25 con Reranker)**, un **loop de razonamiento agéntico liviano** y **exposición dual (Servidor MCP + API REST)**, diseñada de forma desacoplada para evolucionar iterativamente hacia **Omnigraph (GraphRAG)**.
+It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consulta el documento de decisiones en [ARCHITECTURE.md](ARCHITECTURE.md), el motor de metadatos en [METADATA_SYSTEM.md](METADATA_SYSTEM.md), la integración con certificaciones en [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), la declaración de IA y guardrails en [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md) y las pruebas reales en [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
-## Estructura del Proyecto
+## Project Structure
 
 ```text
 rag-tutor/
-├── books/                     # Carpeta con tus libros PDF de Manning
+├── books/                     # Place your own PDF books here (empty by default)
 │   └── .gitkeep
-├── chroma_db/                 # Base de datos vectorial persistente (ChromaDB)
-├── bm25_index.pkl             # Índice léxico BM25 para nombres exactos de YAML/Go
-├── knowledge_graph.json       # Grafo ontológico de conceptos y relaciones (Fase 2)
-├── docker-compose.yml         # Contenedor opcional para servicio daemon de Omnigraph
+├── chroma_db/                 # Persistent vector database (ChromaDB)
+├── bm25_index.pkl             # Inverted BM25 lexical index for exact code tokens
+├── knowledge_graph.json       # Ontological graph of concepts and relations (Phase 2)
+├── docker-compose.yml         # Optional container for Omnigraph lakehouse daemon
 ├── src/
 │   ├── __init__.py
-│   ├── config.py              # Parámetros centralizados y selector de motor
-│   ├── core.py                # Tutor Core con loop agéntico de auto-reflexión
-│   ├── cli.py                 # Cliente de consola interactivo y de comandos
-│   ├── ingest.py              # Ingesta de PDFs, chunking técnico e indexación híbrida
-│   ├── ingest_graph.py        # Ingesta y generación del grafo ontológico (Fase 2)
-│   ├── graph_schema.py        # Esquema de nodos y aristas del Grafo de Conocimiento
-│   ├── mcp_server.py          # Servidor Model Context Protocol (FastMCP / MCPServer)
-│   ├── api.py                 # API REST FastAPI para interfaces Web / Open WebUI
+│   ├── config.py              # Centralized configuration and engine selector
+│   ├── core.py                # Agentic Tutor Core with self-reflection loop
+│   ├── cli.py                 # Interactive and single-query command-line interface
+│   ├── ingest.py              # Incremental PDF ingestion, chunking, and indexing
+│   ├── ingest_graph.py        # GraphRAG knowledge graph ingestion (Phase 2)
+│   ├── graph_schema.py        # Schema of nodes and edges for the knowledge graph
+│   ├── mcp_server.py          # Model Context Protocol server (FastMCP / MCPServer)
+│   ├── api.py                 # FastAPI REST API for Web interfaces / Open WebUI
 │   └── retrievers/
 │       ├── __init__.py
-│       ├── base.py            # Interfaz abstracta BaseRetriever y RetrievedChunk
-│       ├── hybrid.py          # Fase 1: ChromaDB + BM25 + Cross-Encoder Reranker
-│       └── omnigraph.py       # Fase 2: Conector Omnigraph (Remoto + Local GraphRAG)
-├── requirements.txt           # Dependencias de Python
-├── ARCHITECTURE.md            # Registro de decisiones de arquitectura y roadmap
-├── METADATA_SYSTEM.md         # Motor de metadatos universal y auto-perfilado
-├── CERTIFICATION_TUTOR_MCP.md # Integración Open WebUI + MCP con study-cybercirujas
-├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparencia, trazabilidad y guardrails (EU AI Act)
-├── VERIFICATION_TESTS.md      # Informe de pruebas empíricas reales reproducibles
-├── LICENSE                    # Licencia Apache 2.0 de código abierto
+│       ├── base.py            # Abstract BaseRetriever and RetrievedChunk interfaces
+│       ├── hybrid.py          # Phase 1: ChromaDB + BM25 + Cross-Encoder Reranker
+│       └── omnigraph.py       # Phase 2: Omnigraph connector (Remote + Local GraphRAG)
+├── requirements.txt           # Python dependencies
+├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
+├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
+├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
+├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparency, traceability, and guardrails (EU AI Act)
+├── VERIFICATION_TESTS.md      # Empirical verification test report and reproduction steps
+├── LICENSE                    # Apache 2.0 Open Source License
 └── README.md
 ```
 
 ---
 
-## Roadmap Iterativo
+## Iterative Roadmap
 
-- [x] **Fase 1 (Fundamento Híbrido)**:
-  - Ingesta con chunking optimizado para bloques YAML y Go (4 libros, 1.676 págs, 4.169 fragmentos).
-  - Búsqueda híbrida (Chroma semántico + BM25 exacto).
-  - Reranking local con Cross-Encoder (`ms-marco-MiniLM-L-6-v2`).
-  - Agentic RAG loop (evaluación y profundización en máx. 2 pasos).
-  - Servidor MCP compatible con `mcp 2.x` + API FastAPI + CLI interactivo.
-- [x] **Fase 2 (GraphRAG / Omnigraph)**:
-  - Definición del esquema ontológico (`src/graph_schema.py`) con nodos y aristas de Platform Engineering y AI Agents.
-  - Generador de ontología y persistencia en `knowledge_graph.json` (`src/ingest_graph.py`).
-  - Conector `OmnigraphRetriever` con soporte dual: consulta remota a daemon Omnigraph vía HTTP o traversal de relaciones en memoria local.
-  - Configuración opcional con Docker Compose (`docker-compose.yml`).
+- [x] **Phase 1 (Hybrid Foundation)**:
+  - Code-aware chunking optimized for YAML and Go syntax (verified with 22 sources, 8,516 pages, 23,343 chunks).
+  - Hybrid retrieval (Chroma semantic dense search + BM25 exact lexical match).
+  - Local reranking via Cross-Encoder (`ms-marco-MiniLM-L-6-v2`).
+  - Agentic RAG reflection loop (context sufficiency evaluation in max 2 steps).
+  - MCP Server compatible with `mcp 2.x` (`MCPServer`) + FastAPI REST API + interactive CLI.
+- [x] **Phase 2 (GraphRAG / Omnigraph)**:
+  - Ontological schema definition (`src/graph_schema.py`) with domain entities and relations.
+  - Graph generator persisting into `knowledge_graph.json` (`src/ingest_graph.py`).
+  - Dual-mode `OmnigraphRetriever` connector: remote HTTP querying to Omnigraph daemon or local in-memory relationship traversal.
+  - Container deployment ready with Docker Compose (`docker-compose.yml`).
 
 ---
 
-## Sistema de Metadatos y Clasificación Universal (Zero-Config)
+## Universal Metadata Engine (Zero-Config)
 
-El sistema incorpora un motor de auto-catalogación determinista que permite agregar **cualquier libro técnico** (PostgreSQL, React, Rust, Ciberseguridad, Kubernetes, etc.) sin configuración manual:
+The system features a deterministic auto-cataloging engine that supports **any technical book** (PostgreSQL, React, Rust, Cybersecurity, Kubernetes, etc.) without manual tagging:
 
 ```mermaid
 flowchart LR
-    A["Arrastras PDFs variados a books/"] --> B["python src/ingest.py"]
-    B --> C["1. Auto-Perfilado Léxico del Libro\n(Asigna dominio: cloud_native, databases, web, etc.)"]
-    B --> D["2. Detección Sintáctica por Fragmento\n(has_code: true, code_lang: yaml, sql, rust, etc.)"]
-    C & D --> E["ChromaDB + BM25 con Pre-filtrado"]
+    A["Drop any PDFs into books/"] --> B["python src/ingest.py"]
+    B --> C["1. Document Lexical Profiling\n(Assigns domain: cloud_native, databases, web, etc.)"]
+    B --> D["2. Chunk Syntax Detection\n(has_code: true, code_lang: yaml, sql, rust, etc.)"]
+    C & D --> E["ChromaDB + BM25 with Scalar Pre-filtering"]
 ```
 
-1. **Auto-Perfilado en la Ingesta (Zero-Config):** Al colocar nuevos PDFs en `books/` y ejecutar `python src/ingest.py`, el sistema lee la portada y tabla de contenidos (TOC) y asigna automáticamente el dominio temático (`cloud_native`, `databases_and_storage`, `web_and_frontend`, `systems_programming`, `devsecops`, `ai_agents`, `mlops`, `general_technical`), guardándolo en `metadata_registry.json`.
-2. **Detección Sintáctica por Fragmento:** Analiza el código dentro de cada fragmento y marca automáticamente si contiene código (`has_code: true`) y su lenguaje exacto (`code_lang: yaml | go | python | sql | rust | bash | typescript`).
-3. **Búsquedas Filtradas de Alta Precisión:** Permite al usuario en la CLI, a agentes de IA vía MCP y a clientes HTTP filtrar por dominio y por lenguaje exacto, acelerando la búsqueda y eliminando la dilución semántica.
+1. **Auto-Profiling on Ingestion (Zero-Config):** When you place PDFs in `books/` and run `python src/ingest.py`, the system reads the table of contents (TOC) and initial pages, automatically assigning the domain (`cloud_native`, `databases_and_storage`, `web_and_frontend`, `systems_programming`, `devsecops`, `ai_agents`, `mlops`, `general_technical`), persisting it to `metadata_registry.json`.
+2. **Chunk-Level Syntax Detection:** Pure regex analysis checks for code blocks, tagging each chunk with `has_code: true` and its exact language (`yaml | go | python | sql | rust | bash | typescript`).
+3. **High-Precision Filtered Retrieval:** Enables CLI users, MCP agents, and HTTP clients to filter by domain and language, eliminating cross-domain noise and accelerating retrieval.
 
-Consulta la guía técnica con ejemplos prácticos paso a paso en [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
+Read the detailed guide with practical examples in [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
 
 ---
 
-## Autenticación Opcional en Hugging Face (HF_TOKEN)
+## Optional Hugging Face Authentication (HF_TOKEN)
 
 > [!NOTE]
-> **El sistema opera 100% en local y offline sin necesidad de iniciar sesión ni crear cuentas.**
-> Los modelos de embeddings y reranking ya están descargados en tu caché local (`~/.cache/huggingface/hub`).
+> **The system operates 100% locally and offline without requiring accounts or logins.**  
+> Embedding and reranking models run from local cache (`~/.cache/huggingface/hub`) under `HF_HUB_OFFLINE=1`.
 
-Si en algún momento deseas vincular tu cuenta personal de Hugging Face para obtener límites más altos de descarga o utilizar modelos privados:
-1. Genera un token gratuito de tipo *Read* en [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
-2. Configúralo en tu terminal antes de ejecutar:
+If you ever wish to connect your personal Hugging Face account for higher download rate limits or private models:
+1. Create a free *Read* token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
+2. Set it in your environment:
    ```powershell
-   $env:HF_TOKEN = "hf_tu_token_aqui"
+   $env:HF_TOKEN = "hf_your_token_here"
    ```
-   O mediante el CLI oficial:
+   Or via the official CLI:
    ```powershell
    huggingface-cli login
    ```
-Si no defines ningún token, el código suprime automáticamente las advertencias y funciona de forma silenciosa y autónoma.
+If no token is set, warnings are automatically suppressed and execution runs silently offline.
 
 ---
 
-## Requisitos Previos
+## Prerequisites
 
-- **Python**: 3.10 o superior (recomendado 3.11).
-- **Ollama**: Con el modelo instalado (ej. `qwen2.5:7b`):
+- **Python**: 3.10 or higher (3.11 recommended).
+- **Ollama**: Running locally with your chosen model (e.g., `qwen2.5:7b`):
   ```bash
   ollama pull qwen2.5:7b
   ```
 
 ---
 
-## Instalación y Configuración
+## Installation & Setup
 
-1. **Crear y activar el entorno virtual:**
+1. **Create and activate a virtual environment:**
    ```bash
    python -m venv venv
-   # En Windows PowerShell:
+   # On Windows PowerShell:
    .\venv\Scripts\Activate.ps1
-   # En Linux / macOS / WSL:
+   # On Linux / macOS / WSL:
    source venv/bin/activate
    ```
 
-2. **Instalar dependencias:**
+2. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Colocar tus libros técnicos (Cualquier tema / editorial):**
-   - Copia tus archivos `.pdf` dentro del directorio `books/` (el sistema es agnóstico: bases de datos, frontend, cloud, etc., y auto-clasificará todo).
+3. **Place your technical books (Any topic / vendor):**
+   - Copy your `.pdf` files into the `books/` folder. The system is agnostic and will auto-classify them.
 
-4. **Ejecutar la Ingesta e Indexación:**
+4. **Run ingestion and indexing:**
    ```bash
    python src/ingest.py
    ```
+   *(Subsequent runs only process newly added books incrementally).*
 
 ---
 
-## Guía Detallada de los Modos de Uso
+## Detailed Usage Modes
 
-El tutor puede ser utilizado de tres formas complementarias según tu flujo de trabajo:
+The tutor can be used in three complementary modes depending on your workflow:
 
 ---
 
-### Modo 1: Consola / CLI Local (`src/cli.py`)
+### Mode 1: Local Console / CLI (`src/cli.py`)
 
-Diseñado para hacer consultas rápidas desde tu terminal sin necesidad de navegadores ni clientes externos.
+Fast, zero-overhead terminal queries without requiring a browser or external client.
 
-#### A. Consulta directa por argumento (en una sola línea)
+#### A. Direct query argument (single-line execution)
 ```powershell
-.\.venv\Scripts\python.exe src/cli.py "Explica cómo diseñar un Agente de IA reactivo"
+.\.venv\Scripts\python.exe src/cli.py "Explain how to design a reactive AI Agent"
 ```
 
-#### B. Modo Chat interactivo (bucle continuo)
-Si ejecutas el script sin argumentos, entrarás a una sesión interactiva continua:
+#### B. Interactive Chat loop (continuous session)
+Run without arguments for an interactive REPL:
 ```powershell
 .\.venv\Scripts\python.exe src/cli.py
 ```
 ```text
 =================================================================
- 📚 Manning Platform & AI Tutor (Consola Interactiva)
- Escribe tu consulta técnica o 'salir' / 'exit' para terminar.
+ 📚 Universal Technical AI Tutor (Interactive Console)
+ Type your technical query or 'exit' / 'salir' to quit.
 =================================================================
 
-> Pregunta:
-Explica el concepto de Paved Roads en Platform Engineering
+> Question:
+Explain the concept of Paved Roads in Platform Engineering
 
-[... genera respuesta técnica y fuentes ...]
+[... generates technical synthesis with book citations ...]
 
-> Pregunta:
-salir
-¡Hasta luego!
+> Question:
+exit
+Goodbye!
 ```
 
 ---
 
-### Modo 2: Servidor MCP - Model Context Protocol (`src/mcp_server.py`)
+### Mode 2: MCP Server - Model Context Protocol (`src/mcp_server.py`)
 
-Permite a clientes de IA en terminal o IDE (como **Claude Desktop**, **Goose CLI**, o **Antigravity**) invocar tu biblioteca de libros como herramientas nativas de llamada a funciones (*function calling*).
+Exposes your book library as native function-calling tools to external AI agents in your terminal or IDE (such as **Claude Desktop**, **Goose CLI**, or **Antigravity**).
 
-#### Iniciar el servidor manualmente:
+#### Start the server manually (stdio):
 ```powershell
 .\.venv\Scripts\python.exe src/mcp_server.py
 ```
 
-#### Herramientas (Tools) que expone el servidor:
+#### Exposed Tools:
 1. `consultar_libros_manning(pregunta: str) -> str`:
-   - Realiza la búsqueda semántica e híbrida y activa el loop agéntico de auto-reflexión con Ollama para devolver una respuesta fundamentada con citas de páginas.
+   - Runs hybrid retrieval and triggers the agentic reflection loop with Ollama to return a grounded synthesis with exact page citations.
 2. `buscar_codigo_yaml(termino: str) -> str`:
-   - Búsqueda léxica directa para recuperar fragmentos exactos de manifiestos YAML, CRDs, comandos de CLI y snippets de Go sin interpretación del LLM.
+   - Direct lexical retrieval for exact YAML manifests, CRDs, CLI commands, and Go snippets without LLM alteration.
 
-#### Integración con Claude Desktop / Goose CLI (`claude_desktop_config.json`):
+#### Claude Desktop / Goose CLI integration (`claude_desktop_config.json`):
 ```json
 {
   "mcpServers": {
-    "manning-tutor": {
+    "rag-tutor": {
       "command": "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\.venv\\Scripts\\python.exe",
       "args": [
         "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\src\\mcp_server.py"
@@ -211,76 +212,72 @@ Permite a clientes de IA en terminal o IDE (como **Claude Desktop**, **Goose CLI
 
 ---
 
-### Modo 3: API REST con FastAPI (`src/api.py`)
+### Mode 3: REST API with FastAPI (`src/api.py`)
 
-Expone el tutor a través de HTTP estándar, permitiendo conectarlo con interfaces web, extensiones, scripts automatizados o **Open WebUI**.
+Exposes the tutor over standard HTTP, allowing integration with Web frontends, scripts, or **Open WebUI**.
 
-#### Iniciar la API:
+#### Start the API server:
 ```powershell
 .\.venv\Scripts\python.exe src/api.py
 ```
-El servidor arrancará en: `http://localhost:8000`
+Default URL: `http://localhost:8000`
 
-#### Documentación Interactiva (Swagger UI):
-Abre en tu navegador:
+#### Interactive API Documentation (Swagger UI):
+Open in your browser:
 ```text
 http://localhost:8000/docs
 ```
-Podrás probar el endpoint `POST /chat` directamente con un clic desde la interfaz visual.
+You can test the `POST /chat` endpoint directly from the UI.
 
-#### Endpoints Disponibles:
-- `GET /health`: Verifica el estado de salud del sistema, ChromaDB, BM25 y el modelo de Ollama.
-- `POST /chat`: Envía una consulta y recibe la respuesta con fuentes y estadísticas.
+#### Available Endpoints:
+- `GET /health`: Healthcheck verifying ChromaDB, BM25, and local Ollama model connectivity.
+- `POST /chat`: Query endpoint returning answer, sources, and pipeline telemetry.
 
-#### Ejemplo de consumo con cURL / PowerShell:
+#### Consumption example via cURL / PowerShell:
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8000/chat" -Method Post -ContentType "application/json" -Body '{"question": "¿Qué es Crossplane y cómo se relaciona con Platform Engineering?"}'
+Invoke-RestMethod -Uri "http://localhost:8000/chat" -Method Post -ContentType "application/json" -Body '{"question": "What is Crossplane and how does it relate to Platform Engineering?"}'
 ```
 
 ---
 
-## Tecnologías Utilizadas y Repositorios Oficiales
+## Technologies & Upstream Repositories
 
-A continuación se detallan las tecnologías de código abierto que componen la arquitectura del proyecto, junto con sus repositorios fuente y su rol en el sistema:
-
-| Tecnología | Repositorio Oficial | Rol en el Proyecto |
+| Technology | Official Repository | Role in the Project |
 | :--- | :--- | :--- |
-| **ModernRelay Omnigraph** | [ModernRelay/omnigraph](https://github.com/ModernRelay/omnigraph) | Motor de base de datos de grafos nativo de lakehouse sobre Lance con Git-style branching para estado agéntico y relaciones ontológicas (Fase 2). |
-| **Lance** | [lancedb/lance](https://github.com/lancedb/lance) | Formato columnar moderno para datos multimodales y búsqueda vectorial de alto rendimiento utilizado por Omnigraph. |
-| **ChromaDB** | [chroma-core/chroma](https://github.com/chroma-core/chroma) | Base de datos vectorial embebida de código abierto para indexación y búsqueda semántica de fragmentos técnicos (Fase 1). |
-| **Rank-BM25** | [dorianbrown/rank_bm25](https://github.com/dorianbrown/rank_bm25) | Implementación de algoritmos de búsqueda léxica BM25 (Okapi BM25) para captura exacta de nombres de CRDs, YAMLs y funciones. |
-| **Sentence-Transformers** | [UKPLab/sentence-transformers](https://github.com/UKPLab/sentence-transformers) | Framework para computar embeddings densos (`all-MiniLM-L6-v2`) y modelos de Cross-Encoder Reranking (`ms-marco-MiniLM-L-6-v2`). |
-| **LangChain Core & Community** | [langchain-ai/langchain](https://github.com/langchain-ai/langchain) | Abstracciones para orquestación de RAG, splitters de texto con preservación de código y loaders de documentos. |
-| **PyMuPDF (fitz)** | [pymupdf/PyMuPDF](https://github.com/pymupdf/PyMuPDF) | Extracción ultrarrápida de texto, metadatos y páginas desde libros PDF. |
-| **Model Context Protocol (MCP)** | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | SDK oficial de Anthropic / Linux Foundation para exponer herramientas a agentes de IA mediante el protocolo MCP (v2.x `MCPServer`). |
-| **FastAPI** | [fastapi/fastapi](https://github.com/fastapi/fastapi) | Framework web asíncrono para construir la API REST y documentación interactiva Swagger UI. |
-| **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Motor de inferencia local de modelos de lenguaje en hardware propio (CPU Xeon / GPU). |
-| **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Familia de modelos fundacionales de código abierto de última generación utilizados para el razonamiento agéntico y síntesis técnica. |
-| **uv (Astral)** | [astral-sh/uv](https://github.com/astral-sh/uv) | Gestor de paquetes y entornos virtuales de Python ultrarrápido escrito en Rust. |
+| **ModernRelay Omnigraph** | [ModernRelay/omnigraph](https://github.com/ModernRelay/omnigraph) | Lakehouse-native graph database over Lance with Git-style branching for agentic state (Phase 2). |
+| **Lance** | [lancedb/lance](https://github.com/lancedb/lance) | Modern columnar format for multimodal data and high-performance vector search. |
+| **ChromaDB** | [chroma-core/chroma](https://github.com/chroma-core/chroma) | Embedded open-source vector database for dense indexing and semantic search (Phase 1). |
+| **Rank-BM25** | [dorianbrown/rank_bm25](https://github.com/dorianbrown/rank_bm25) | Okapi BM25 lexical search implementation for exact code tokens, CRDs, and keywords. |
+| **Sentence-Transformers** | [UKPLab/sentence-transformers](https://github.com/UKPLab/sentence-transformers) | Dense embedding models (`all-MiniLM-L6-v2`) and Cross-Encoder rerankers (`ms-marco-MiniLM-L-6-v2`). |
+| **LangChain Core & Community** | [langchain-ai/langchain](https://github.com/langchain-ai/langchain) | RAG orchestration abstractions, code-aware text splitters, and document loaders. |
+| **PyMuPDF (fitz)** | [pymupdf/PyMuPDF](https://github.com/pymupdf/PyMuPDF) | High-speed C-based text, metadata, and page extraction from PDF books. |
+| **Model Context Protocol (MCP)** | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | Official Anthropic / Linux Foundation SDK exposing tools to agents via MCP (v2.x `MCPServer`). |
+| **FastAPI** | [fastapi/fastapi](https://github.com/fastapi/fastapi) | Async web framework powering the REST API and interactive Swagger documentation. |
+| **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Local model inference engine running on consumer hardware (CPU / GPU). |
+| **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Open-weights foundation models used for agentic reasoning and technical synthesis. |
+| **uv (Astral)** | [astral-sh/uv](https://github.com/astral-sh/uv) | High-speed Rust-based Python package manager and resolver. |
 
 ---
 
-## Declaración de IA, Transparencia y Guardrails
+## AI Disclosure, Transparency & Guardrails
 
-El contenido pedagógico y las respuestas sintetizadas por `rag-tutor` son generadas por modelos de lenguaje de gran escala (LLMs) ejecutados localmente. Al igual que en proyectos de educación abierta como [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas):
-- El sistema actúa como un **asistente de estudio**; los libros de ingeniería y la documentación oficial de los vendors son la máxima autoridad técnica.
-- Se implementan **4 capas de guardrails automáticos** en código: Reranking Cross-Encoder, Loop Agéntico de Auto-Reflexión, Citas Obligatorias de Páginas y Soberanía Local de Datos sin telemetría.
-- Cumple con los estándares de trazabilidad y transparencia en alineación con el **Artículo 50 del AI Act de la Unión Europea**.
+All educational explanations generated by `rag-tutor` are produced by locally executed large language models. In alignment with open educational initiatives like [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas):
+- The system functions strictly as a **study aid**; original engineering books and vendor documentation are the ultimate authority.
+- The pipeline implements **4 automated mechanical guardrails**: Cross-Encoder Reranking, Agentic Self-Reflection Loop, Mandatory Page Citations, and Sovereign Local Data Privacy.
+- Complies with transparency and traceability standards aligned with **EU AI Act Article 50**.
 
-Consulta la declaración completa en [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md).
-
----
-
-## Pruebas de Verificación y Reproducibilidad
-
-Todas las afirmaciones sobre rendimiento, latencia (<350 ms pre-LLM), mitigación de dilución en 23.343 fragmentos y precisión de citas fueron validadas mediante pruebas empíricas reales en hardware local.
-
-Consulta el reporte de ejecución con traza completa y pasos de reproducción en [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Read the full disclosure and policy in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md).
 
 ---
 
-## Licencia
+## Empirical Verification Tests & Reproducibility
 
-Este proyecto está bajo la **Licencia Apache 2.0** de código abierto. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+All claims regarding sub-350ms pre-LLM latency, dilution mitigation across 23,343 chunks, and exact page citation fidelity have been empirically validated on local hardware.
 
+Read the execution logs, model telemetry, and reproduction instructions in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
+---
+
+## License
+
+This project is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE) for details.

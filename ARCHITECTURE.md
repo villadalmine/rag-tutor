@@ -1,82 +1,82 @@
-# Arquitectura y Roadmap: Manning Platform Engineering Tutor
+# Architecture & Roadmap: Universal Technical RAG Tutor
 
-> **Registro de Decisiones de Arquitectura (ADR) y Plan de Evolución Iterativa**  
-> **Fecha de Inicio:** Octubre 2026  
+> **Architecture Decision Records (ADRs) and Iterative Evolution Plan**  
+> **Start Date:** October 2026  
 > **Workspace:** `rag-tutor`  
-> **Hardware Objetivo:** Estación de trabajo local (Dual Xeon, 256 GB RAM, inferencia local con Ollama / vLLM).
+> **Target Hardware:** Local workstation (Dual Xeon, 256 GB RAM, local Ollama / vLLM inference).
 
 ---
 
-## 1. Contexto y Problema
+## 1. Context and Problem Statement
 
-El objetivo del proyecto es construir un **Tutor de Inteligencia Artificial Local** especializado en libros técnicos avanzados de Manning (enfocados en **Ingeniería de Plataformas**, **Kubernetes Internals**, **Operadores en Go**, **Crossplane**, **Service Meshes** y **Arquitecturas Cloud-Native**).
+The goal of this project is to build an **Agnostic, Sovereign Local AI Tutor** specialized in technical books (covering **Software Engineering**, **Kubernetes Internals**, **Go Operators**, **Crossplane**, **Service Meshes**, **Databases**, and **Cloud-Native Architectures**).
 
-### Desafíos Técnicos Identificados:
-1. **Fallas del RAG puramente vectorial:**
-   - La búsqueda vectorial estándar (`all-MiniLM-L6-v2`, `bge-base`, etc.) comprende bien conceptos genéricos, pero pierde precisión crítica ante identificadores exactos: nombres de Custom Resource Definitions (`kind: CompositeResourceDefinition`), flags de `kubectl`/`kubebuilder`, sintaxis YAML con indentaciones estrictas o firmas de funciones en Go.
-2. **Pérdida de la "visión arquitectónica" (Chunking fragmentado):**
-   - Cortar PDFs en trozos fijos de 1000 caracteres rompe bloques de código y desconecta las relaciones entre componentes distribuidos (por ejemplo: cómo un Custom Controller vigila un recurso y se comunica con un webhook de admisión).
-3. **Dualidad de consumo:**
-   - El tutor debe poder ser consultado tanto interactivamente mediante interfaces Web (API REST / Open WebUI) como de forma integrada en la terminal como herramienta nativa mediante el **Model Context Protocol (MCP)** (para clientes como Goose CLI, Claude Desktop o Antigravity).
+### Technical Challenges Identified:
+1. **Shortcomings of Naive Vector RAG:**
+   - Standard dense vector embeddings (`all-MiniLM-L6-v2`, `bge-base`, etc.) capture broad conceptual meaning well, but suffer critical degradation with exact syntax: Custom Resource Definition names (`kind: CompositeResourceDefinition`), `kubectl`/`kubebuilder` flags, indentation-sensitive YAML, or Go function signatures.
+2. **Loss of Architectural Context (Fragmented Chunking):**
+   - Naive character-count splitters (e.g. slicing PDFs every 1000 characters) sever code blocks and disconnect relationships between distributed components (e.g., how a Custom Controller watches a resource and validates via an Admission Webhook).
+3. **Dual Consumption Needs:**
+   - The tutor must serve both human interactive workflows (Web UI / Open WebUI via REST API) and AI agent workflows natively in the terminal via the **Model Context Protocol (MCP)** (for clients like Claude Desktop, Goose CLI, or Antigravity).
 
 ---
 
-## 2. Decisión de Diseño: Estrategia de Evolución Iterativa
+## 2. Design Decision: Two-Phase Iterative Roadmap
 
-Para balancear **valor inmediato y funcionalidad práctica sin sobrediseño inicial (*no overkill*)** frente a la necesidad de **grafos de conocimiento complejos**, adoptamos una estrategia en **dos fases iterativas**.
+To balance **immediate operational value without early over-engineering (*no overkill*)** against the long-term necessity of **formal knowledge graphs**, we adopted a two-phase architecture.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                                   ROADMAP ITERATIVO                                    │
+│                                  ITERATIVE ROADMAP                                     │
 │                                                                                        │
-│   FASE 1: Fundamento Operativo (Actual)         FASE 2: Evolución GraphRAG             │
+│   PHASE 1: Operational Foundation (Current)     PHASE 2: GraphRAG Evolution            │
 │   ┌───────────────────────────────────┐         ┌───────────────────────────────────┐  │
-│   │ • RAG Híbrido (Chroma + BM25)     │         │ • Omnigraph (Lance Lakehouse)     │  │
-│   │ • Cross-Encoder Reranker local    │  ────►  │ • Mapeo Ontológico de Plataforma  │  │
-│   │ • Loop Agéntico liviano (Python)  │         │ • Git-Style Branching de contexto │  │
-│   │ • Exposición FastMCP + FastAPI    │         │ • Omnigraph MCP nativo            │  │
+│   │ • Hybrid RAG (Chroma + BM25)      │         │ • Omnigraph (Lance Lakehouse)     │  │
+│   │ • Local Cross-Encoder Reranker    │  ────►  │ • Ontological Platform Schema     │  │
+│   │ • Lightweight Agentic Loop (Py)   │         │ • Git-Style Context Branching     │  │
+│   │ • FastMCP + FastAPI Exposure      │         │ • Native Omnigraph MCP Server     │  │
 │   └───────────────────────────────────┘         └───────────────────────────────────┘  │
 │                     ▲                                             ▲                    │
 │                     └───────────────────┬─────────────────────────┘                    │
 │                                         │                                              │
 │                            BaseRetriever Abstraction Layer                             │
-│                           (Permite alternar sin reescribir)                            │
+│                           (Switch engines without rewrites)                            │
 └────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 3. Fase 1: Fundamento Operativo y RAG Híbrido Agéntico (Estado Actual)
+## 3. Phase 1: Operational Foundation & Agentic Hybrid RAG (Current State)
 
-La Fase 1 implementa un stack 100% autónomo y autocontenido en Python que corre sobre el hardware local sin necesidad de levantar bases de datos de grafos pesadas externas:
+Phase 1 delivers a 100% self-contained, offline Python stack running locally without requiring heavy external graph databases:
 
-### Componentes:
-1. **Ingesta y Chunking Técnico (`src/ingest.py`):**
-   - Extracción de PDFs con `PyMuPDFLoader`.
-   - Chunking adaptado a código y arquitectura mediante `RecursiveCharacterTextSplitter` con jerarquía de separadores: `["\n## ", "\n### ", "\n```", "\n\n", "\n"]`.
-   - Tamaño de fragmento: 400-600 tokens con overlap de 100 tokens, preservando bloques sintácticos.
-2. **Motor Híbrido de Recuperación (`src/retrievers/hybrid.py`):**
-   - **Vector Store:** ChromaDB persistente en `./chroma_db` con embeddings locales HuggingFace (`sentence-transformers/all-MiniLM-L6-v2` o `BAAI/bge-base-en-v1.5`).
-   - **Buscador Léxico:** BM25 (`rank_bm25`) para captura exacta de nombres de paquetes, comandos y manifiestos YAML.
-   - **Reranker:** Cross-Encoder local (`cross-encoder/ms-marco-MiniLM-L-6-v2` o `BAAI/bge-reranker-base`) para filtrar el top de fragmentos relevantes antes del LLM.
-3. **Loop Agéntico Controlado en Python (`src/core.py`):**
-   - En lugar de requerir frameworks agénticos pesados, `AgenticTutorCore` ejecuta un ciclo de auto-reflexión de máximo 2 iteraciones:
-     1. *Paso A (Búsqueda inicial):* Recupera el primer conjunto de documentos candidatos.
-     2. *Paso B (Evaluación de Suficiencia):* El LLM evalúa si el contexto tiene el código, YAML y teoría necesarios. Si detecta vacíos, emite una sub-query técnica refinada (`NECESITO_MAS_INFO: [sub-query]`).
-     3. *Paso C (Consolidación):* Sintetiza la respuesta final garantizando fundamentación estricta en los libros.
-4. **Exposición Dual:**
-   - **FastMCP (`src/mcp_server.py`):** Herramientas `consultar_libros_manning` y `buscar_codigo_yaml` listas para clientes MCP.
-   - **FastAPI (`src/api.py`):** Endpoint POST `/chat` para interfaces de usuario y Open WebUI.
+### Core Components:
+1. **Ingestion & Code-Preserving Chunking (`src/ingest.py`):**
+   - High-speed text and layout extraction via `PyMuPDFLoader`.
+   - Syntax-aware chunking using `RecursiveCharacterTextSplitter` with hierarchical code separators: `["\n## ", "\n### ", "\n```yaml", "\n```go", "\n```", "\n\n", "\n"]`.
+   - Chunk size: 400-600 tokens with 100-token overlap, preserving semantic blocks intact.
+2. **Hybrid Retrieval Engine (`src/retrievers/hybrid.py`):**
+   - **Vector Store:** Persistent ChromaDB at `./chroma_db` with local Hugging Face embeddings (`sentence-transformers/all-MiniLM-L6-v2`).
+   - **Lexical Search:** Inverted index with BM25 Okapi (`rank_bm25`) for exact token matching of CRDs, functions, and commands.
+   - **Reranker:** Local Cross-Encoder (`cross-encoder/ms-marco-MiniLM-L-6-v2`) scoring the top 12 candidate pairs to deliver the top 4 pure chunks.
+3. **Controlled Agentic Reflection Loop (`src/core.py`):**
+   - Rather than introducing heavy external agent frameworks, `AgenticTutorCore` executes a focused self-reflection cycle (max 2 steps):
+     1. *Step A (Candidate Retrieval):* Retrieves the initial pool of candidate documents.
+     2. *Step B (Sufficiency Evaluation):* The LLM assesses whether code, YAML, and theory are sufficient. If gaps exist, it generates a targeted sub-query (`NECESITO_MAS_INFO: [sub-query]`).
+     3. *Step C (Consolidation):* Synthesizes the final answer strictly grounded in the books with verified page citations.
+4. **Dual Interface Exposure:**
+   - **FastMCP (`src/mcp_server.py`):** Exposes `consultar_libros_manning` and `buscar_codigo_yaml` tools over standard stdio JSON-RPC.
+   - **FastAPI (`src/api.py`):** Exposes `POST /chat` and `GET /health` with Swagger UI for Open WebUI and HTTP clients.
 
 ---
 
-## 4. Fase 2: Evolución hacia Omnigraph (`ModernRelay/omnigraph`)
+## 4. Phase 2: GraphRAG Evolution via Omnigraph (`ModernRelay/omnigraph`)
 
-### ¿Por qué Omnigraph?
-[Omnigraph](https://github.com/ModernRelay/omnigraph) es una base de datos de grafos nativa de lakehouse diseñada sobre el formato columnar **Lance**. Ofrece:
-- **Grafo + Vectores Unificados:** Resuelve la separación artificial entre almacenamiento semántico y relaciones de dependencia.
-- **Git-Style Branching:** Los agentes pueden ramificar estados del grafo y explorar hipótesis de arquitectura sin afectar el conocimiento base.
-- **Ontología de Plataforma:** Permite mapear los libros como grafos dirigidos de conceptos de Kubernetes:
+### Why Omnigraph?
+[Omnigraph](https://github.com/ModernRelay/omnigraph) is a lakehouse-native graph database built on the **Lance** columnar format:
+- **Unified Graph + Vectors:** Bridges the divide between dense vector similarity and discrete dependency graphs.
+- **Git-Style Branching:** Agents can branch graph state to explore architectural hypotheses without mutating the ground truth.
+- **Platform Ontology:** Maps technical books into directed dependency graphs:
   ```text
   (CustomResourceDefinition) ──[defined_by]──► (Go Struct / Kubebuilder Markers)
               │
@@ -89,50 +89,46 @@ La Fase 1 implementa un stack 100% autónomo y autocontenido en Python que corre
    (Kubernetes API Server) ──[webhook_validated_by]──► (AdmissionWebhook)
   ```
 
-### ¿Cómo se implementó la Fase 2 en el código?
-1. **Capa de Abstracción `BaseRetriever` (`src/retrievers/base.py`):**
-   - El Core del tutor (`AgenticTutorCore`) interactúa únicamente con la interfaz unificada `BaseRetriever`.
-2. **Conector Dual `OmnigraphRetriever` (`src/retrievers/omnigraph.py`):**
-   - **Modo Remoto (Daemon Omnigraph):** Si el servicio local o contenedor de Omnigraph está activo en `http://localhost:8080`, consulta directamente su API GraphQL/REST de grafos sobre Lance.
-   - **Modo Local Integrado (GraphRAG en memoria):** Si no hay un contenedor externo corriendo, carga automáticamente `knowledge_graph.json` y ejecuta el recorrido de relaciones (BFS/Multi-hop Traversal) en Python, combinándolo con la búsqueda semántica y léxica.
-3. **Pipeline de Ingesta Ontológica (`src/ingest_graph.py`):**
-   - Extrae y mapea 16 entidades clave y 16 relaciones directas entre conceptos de Platform Engineering, AI Agents (LangGraph, ReAct), LLMs in Production (Fine-Tuning, LoRA, RAG).
-4. **Despliegue Contenedorizado (`docker-compose.yml`):**
-   - Configuración lista para levantar el servicio `ghcr.io/modernrelay/omnigraph:latest` cuando se requiera persistencia de grafos a escala.
+### Implementation Details in the Codebase:
+1. **`BaseRetriever` Abstraction (`src/retrievers/base.py`):**
+   - `AgenticTutorCore` only depends on the unified `BaseRetriever` interface.
+2. **Dual `OmnigraphRetriever` Connector (`src/retrievers/omnigraph.py`):**
+   - **Remote Mode (Omnigraph Daemon):** If a local or containerized Omnigraph instance is active at `http://localhost:8080`, queries its GraphQL/REST API.
+   - **Local Integrated Mode (In-Memory GraphRAG):** When running without an external daemon, automatically loads `knowledge_graph.json` and performs multi-hop BFS relationship traversal in memory.
+3. **Ontological Ingestion Pipeline (`src/ingest_graph.py`):**
+   - Maps 16 key technical entities and 16 directed relationships covering Platform Engineering, AI Agents (LangGraph, ReAct), and MLOps.
+4. **Containerized Deployment (`docker-compose.yml`):**
+   - Ready to run `ghcr.io/modernrelay/omnigraph:latest` for scaled graph lakehouse persistence.
 
 ---
 
-## 5. Resumen de Trade-offs y Decisiones
+## 5. Architectural Trade-offs & Decisions
 
-| Criterio | Fase 1 (Chroma + BM25 + Loop Python) | Fase 2 (Omnigraph GraphRAG) |
+| Criterion | Phase 1 (Chroma + BM25 + Python Loop) | Phase 2 (Omnigraph GraphRAG) |
 | :--- | :--- | :--- |
-| **Complejidad de Despliegue** | **Mínima:** 100% Python nativo, carpetas locales. | **Media:** Requiere servicio Omnigraph y esquema ontológico. |
-| **Tiempo de Puesta en Marcha** | Inmediato (minutos tras colocar PDFs). | Posterior a validar el volumen y tipo de consultas. |
-| **Búsqueda Exacta (Código/YAML)** | Excelente (BM25 + Reranker). | Sobresaliente (Indexación multimodal + atributos). |
-| **Relaciones Arquitectónicas** | Resueltas en 2 pasos mediante el Agentic Loop. | Mapeadas nativamente en la topología del grafo. |
-| **Branching de Agentes** | No disponible (estático). | Disponible de forma nativa (estilo Git). |
-| **Sobrecarga de Infraestructura** | **Cero:** sin servicios extra. | Servicio adicional en segundo plano. |
-
-> **Conclusión del Equipo:**  
-> Comenzamos desplegando y validando la **Fase 1**. Una vez que los libros estén indexados y hayamos evaluado la calidad de las respuestas en situaciones de alta interconexión arquitectónica, activamos el conector de **Omnigraph** dentro de la abstracción `BaseRetriever`.
+| **Deployment Complexity** | **Minimal:** 100% native Python, local disk directories. | **Moderate:** Requires Omnigraph service and schema maintenance. |
+| **Time to First Query** | Instant (minutes after placing PDFs). | Follows volume and query complexity validation. |
+| **Exact Syntax Search (Code/YAML)** | Excellent (BM25 + Cross-Encoder). | Outstanding (Multimodal indexing + graph attributes). |
+| **Architectural Dependencies** | Resolved in 2 steps via the Agentic Loop. | Natively encoded in the graph topology. |
+| **Agentic Branching** | Unavailable (static). | Natively available (Git-style branching). |
+| **Infrastructure Overhead** | **Zero:** no background services required. | Lightweight daemon service. |
 
 ---
 
-## 6. Decisión de Arquitectura: Motor de Metadatos y Clasificación Universal (Zero-Config)
+## 6. Architecture Decision Record: Universal Deterministic Metadata Engine (Zero-Config)
 
-### Contexto y Problema
-Al escalar la biblioteca a decenas de fuentes técnicas heterogéneas (más de 23.000 fragmentos), la búsqueda puramente vectorial sufre de:
-1. **Dilución semántica por términos polisémicos:** Palabras como *"pipeline"*, *"controller"*, *"cluster"* tienen significados dispares en Kubernetes, MLOps, Streaming y Bases de Datos.
-2. **Ceguera de código:** Dificultad para aislar ejemplos de sintaxis pura (YAML, Go, SQL, Rust) frente a párrafos explicativos teóricos.
+### Context & Problem
+Scaling the technical library across dozens of heterogeneous sources (over 23,000 chunks) introduces two major risks to naive vector search:
+1. **Semantic Dilution from Polysemous Terms:** Words like *"pipeline"*, *"controller"*, or *"cluster"* carry radically different meanings in Kubernetes, MLOps, Event Streaming, and Databases.
+2. **Code Blindness:** Dense embeddings struggle to differentiate executable syntax (YAML, Go, SQL, Rust) from theoretical commentary.
 
-### Decisión de Diseño: Cascada Determinista en 2 Niveles
-En lugar de depender de un LLM para etiquetar fragmentos (lento, costoso y no reproducible), implementamos un motor determinista:
-1. **Nivel Macro (Libro):** Auto-perfilado léxico analizando las primeras páginas del PDF (TOC y prefacio) para asignar el dominio (`cloud_native`, `ai_agents`, `mlops`, `databases_and_storage`, `systems_programming`, `web_and_frontend`, `devsecops_and_security`, etc.) y persistirlo en `metadata_registry.json`.
-2. **Nivel Micro (Fragmento):** Detección sintáctica pura por expresiones regulares y firmas de lenguaje (`has_code`, `code_lang: yaml|go|python|sql|rust|bash|typescript`, `is_heading`).
-3. **Mecanismo de Contingencia:** Libros atípicos reciben el dominio universal `general_technical` con tags autogenerados por frecuencia TF-IDF.
+### Design Decision: Two-Level Deterministic Cascade
+Rather than relying on LLMs for chunk-level tagging (slow, non-deterministic, and costly), we implement a deterministic engine:
+1. **Macro Level (Document):** Automatic lexical profiling reads the first pages of each PDF (TOC and preface) to assign domain tags (`cloud_native`, `ai_agents`, `mlops`, `databases_and_storage`, `systems_programming`, `web_and_frontend`, `devsecops`, etc.) and persists them in `metadata_registry.json`.
+2. **Micro Level (Chunk):** Pure regex syntax detection categorizes code blocks (`has_code`, `code_lang: yaml|go|python|sql|rust|bash|typescript`, `is_heading`).
+3. **Fallback Mechanism:** Unrecognized books receive the universal fallback domain `general_technical` with auto-extracted TF-IDF keywords.
 
-### Impacto Operativo
-- **Pre-filtering HNSW:** ChromaDB filtra por metadatos escalares antes de computar similitudes coseno, reduciendo el espacio de búsqueda vectorial de 23k+ a menos de 5k fragmentos en < 5 ms.
-- **Transición a Fase 2:** Los metadatos de dominio y tags alimentan directamente las propiedades de los nodos y aristas del Grafo de Conocimiento en Omnigraph / Lance.
-- Consulta el documento de implementación en [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
-
+### Operational Impact
+- **HNSW Pre-Filtering:** ChromaDB performs scalar metadata pre-filtering before calculating Euclidean distances, reducing the vector search space from 23k+ to < 5k chunks in < 5 ms.
+- **Phase 2 Bridge:** Domain and tag metadata directly map into node attributes and edge properties within Omnigraph / Lance.
+- Consult the full specification in [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
