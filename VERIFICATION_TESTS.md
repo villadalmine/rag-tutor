@@ -113,7 +113,7 @@ Un Admission Controller en Kubernetes es un mecanismo crucial para implementar p
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/rag-tutor.git
+   git clone https://github.com/villadalmine/rag-tutor.git
    cd rag-tutor
    ```
 2. Asegúrate de tener Ollama corriendo con el modelo:
