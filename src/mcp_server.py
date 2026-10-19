@@ -7,14 +7,22 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from mcp.server.fastmcp import FastMCP
-from src.core import AgenticTutorCore
+try:
+    from mcp.server.mcpserver import MCPServer
 
-# Inicializamos el servidor FastMCP
-mcp = FastMCP(
-    "Manning Platform Engineering Tutor",
-    description="Servidor MCP para consultar libros técnicos de Manning (Kubernetes, Platform Engineering, Go, Crossplane).",
-)
+    mcp = MCPServer(
+        name="Manning Platform Engineering Tutor",
+        description="Servidor MCP para consultar libros técnicos de Manning (Kubernetes, Platform Engineering, Go, Crossplane).",
+    )
+except ImportError:
+    from mcp.server.fastmcp import FastMCP
+
+    mcp = FastMCP(
+        "Manning Platform Engineering Tutor",
+        description="Servidor MCP para consultar libros técnicos de Manning (Kubernetes, Platform Engineering, Go, Crossplane).",
+    )
+
+from src.core import AgenticTutorCore
 
 tutor = AgenticTutorCore()
 

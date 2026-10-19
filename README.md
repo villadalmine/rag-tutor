@@ -86,19 +86,97 @@ rag-tutor/
 
 ---
 
-## Formas de Ejecución
+## Guía Detallada de los Modos de Uso
 
-### Opción A: Como Servidor MCP (para Claude Desktop, Goose CLI, etc.)
-```bash
-python src/mcp_server.py
-```
-Herramientas expuestas:
-- `consultar_libros_manning(pregunta)`: Búsqueda y síntesis agéntica sobre los libros.
-- `buscar_codigo_yaml(termino)`: Búsqueda exacta léxica de manifiestos, CRDs y comandos.
+El tutor puede ser utilizado de tres formas complementarias según tu flujo de trabajo:
 
-### Opción B: Como API REST (FastAPI)
-```bash
-python src/api.py
+---
+
+### Modo 1: Consola / CLI Local (`src/cli.py`)
+
+Diseñado para hacer consultas rápidas desde tu terminal sin necesidad de navegadores ni clientes externos.
+
+#### A. Consulta directa por argumento (en una sola línea)
+```powershell
+.\.venv\Scripts\python.exe src/cli.py "Explica cómo diseñar un Agente de IA reactivo"
 ```
-Acceso a Swagger UI en: `http://localhost:8000/docs`
-Endpoint principal: `POST http://localhost:8000/chat`
+
+#### B. Modo Chat interactivo (bucle continuo)
+Si ejecutas el script sin argumentos, entrarás a una sesión interactiva continua:
+```powershell
+.\.venv\Scripts\python.exe src/cli.py
+```
+```text
+=================================================================
+ 📚 Manning Platform & AI Tutor (Consola Interactiva)
+ Escribe tu consulta técnica o 'salir' / 'exit' para terminar.
+=================================================================
+
+> Pregunta:
+Explica el concepto de Paved Roads en Platform Engineering
+
+[... genera respuesta técnica y fuentes ...]
+
+> Pregunta:
+salir
+¡Hasta luego!
+```
+
+---
+
+### Modo 2: Servidor MCP - Model Context Protocol (`src/mcp_server.py`)
+
+Permite a clientes de IA en terminal o IDE (como **Claude Desktop**, **Goose CLI**, o **Antigravity**) invocar tu biblioteca de libros como herramientas nativas de llamada a funciones (*function calling*).
+
+#### Iniciar el servidor manualmente:
+```powershell
+.\.venv\Scripts\python.exe src/mcp_server.py
+```
+
+#### Herramientas (Tools) que expone el servidor:
+1. `consultar_libros_manning(pregunta: str) -> str`:
+   - Realiza la búsqueda semántica e híbrida y activa el loop agéntico de auto-reflexión con Ollama para devolver una respuesta fundamentada con citas de páginas.
+2. `buscar_codigo_yaml(termino: str) -> str`:
+   - Búsqueda léxica directa para recuperar fragmentos exactos de manifiestos YAML, CRDs, comandos de CLI y snippets de Go sin interpretación del LLM.
+
+#### Integración con Claude Desktop / Goose CLI (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "manning-tutor": {
+      "command": "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\.venv\\Scripts\\python.exe",
+      "args": [
+        "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\src\\mcp_server.py"
+      ]
+    }
+  }
+}
+```
+
+---
+
+### Modo 3: API REST con FastAPI (`src/api.py`)
+
+Expone el tutor a través de HTTP estándar, permitiendo conectarlo con interfaces web, extensiones, scripts automatizados o **Open WebUI**.
+
+#### Iniciar la API:
+```powershell
+.\.venv\Scripts\python.exe src/api.py
+```
+El servidor arrancará en: `http://localhost:8000`
+
+#### Documentación Interactiva (Swagger UI):
+Abre en tu navegador:
+```text
+http://localhost:8000/docs
+```
+Podrás probar el endpoint `POST /chat` directamente con un clic desde la interfaz visual.
+
+#### Endpoints Disponibles:
+- `GET /health`: Verifica el estado de salud del sistema, ChromaDB, BM25 y el modelo de Ollama.
+- `POST /chat`: Envía una consulta y recibe la respuesta con fuentes y estadísticas.
+
+#### Ejemplo de consumo con cURL / PowerShell:
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8000/chat" -Method Post -ContentType "application/json" -Body '{"question": "¿Qué es Crossplane y cómo se relaciona con Platform Engineering?"}'
+```
