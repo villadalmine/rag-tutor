@@ -263,3 +263,150 @@ spec:
    Calls `consultar_libros_manning("Kubernetes NetworkPolicy podSelector egress rules")` $\rightarrow$ Fetches exact architectural explanations and verified YAML manifests from **Core Kubernetes** with exact page numbers.
 4. **Synthesis:**  
    The user receives a complete study module: official syllabus context, practical break-and-fix lab, and battle-tested book theory.
+
+---
+
+## 3. Comparative Benchmark: Phase 1 (Hybrid RAG) vs. Phase 2 (GraphRAG / Omnigraph)
+
+This section demonstrates how the engine responds in each operational mode when queried with the exact same architectural question:
+> **Question:** *"What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"*
+
+> [!NOTE]
+> **Why `knowledge_graph.json` is tracked in the repository & why you do NOT need this specific data as-is:**
+> - **Purpose:** `knowledge_graph.json` is a lightweight (~7 KB) **seed ontology template** demonstrating how Phase 2 GraphRAG models entities (`Discipline`, `System`, `Pattern`, `Architecture`) and relationships (`DELIVERS`, `ENABLES`, `USES`, `RETRIEVES_FROM`).
+> - **Zero Copyrighted Book Text:** Unlike `chroma_db/` and `bm25_index.pkl` (which contain extracted text chunks and are properly ignored via `.gitignore`), `knowledge_graph.json` contains only conceptual metadata.
+> - **Immediate Out-of-the-Box Execution:** Anyone cloning the repo can test GraphRAG locally via `OmnigraphRetriever` without first provisioning an external database or running manual generation scripts.
+> - **Fully Customizable for ANY Domain:** You do **not** need to use this specific ontology. If your library covers Database Internals, Frontend Development, Rust Systems, or Cybersecurity, you can customize entity definitions in [`src/ingest_graph.py`](src/ingest_graph.py) and regenerate `knowledge_graph.json` with `python src/ingest_graph.py`.
+
+---
+
+### Case A: Phase 1 Output (Hybrid ChromaDB + BM25 + Cross-Encoder)
+
+#### Command:
+```powershell
+.\.venv\Scripts\python.exe src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
+```
+
+#### Terminal Output:
+```text
+[Info] Using HybridRetriever (Phase 1: ChromaDB + BM25 + Reranker)
+
+🔍 Querying technical library...
+
+=================================================================
+💡 Tutor Response:
+=================================================================
+An Internal Developer Platform (IDP) is a critical component in platform engineering, designed to simplify and automate the software development lifecycle for internal development teams. According to the context provided in "Effective Platform Engineering," an IDP serves as a layer between developers and the underlying infrastructure, offering self-service capabilities and abstractions that streamline development and deployment processes.
+
+### Key Characteristics of an IDP
+
+1. **Self-Service Capabilities**: IDPs provide developers with self-service interfaces, enabling them to manage applications and environments independently. For example, a developer can deploy a new microservice using a self-service portal with minimal interaction with the operations team. This reduces dependency on other teams and minimizes context switching, allowing developers to focus on building features rather than navigating complex systems.
+
+2. **Standardization and Automation**: IDPs enforce standardization through templates and policies, promoting best practices and compliance. Automation is a core aspect, with workflows streamlined through CI/CD integration and automated provisioning. This minimizes manual intervention and ensures consistency and accuracy in the development process.
+
+3. **Governance and Compliance**: IDPs are designed to ensure that development activities adhere to organizational standards and compliance requirements. They provide a structured approach to governance, helping to maintain high engineering quality and operational resiliency.
+
+4. **Enhanced Productivity and Satisfaction**: By providing a centralized hub for documentation, APIs, tooling, and collaboration resources, IDPs reduce the time developers spend on administrative tasks. This leads to increased productivity and job satisfaction.
+
+### Relation to Self-Service
+
+Self-service is a fundamental principle of IDPs. The term "self-service" in this context refers to the ability of developers to manage their applications and environments independently, without the need for extensive interaction with other teams. This is achieved through the provision of intuitive and user-friendly interfaces, such as the self-service portal mentioned in the context.
+
+For instance, when a developer needs to deploy a new microservice, they can use the self-service portal to configure and deploy it with a few clicks. This process is automated and standardized, ensuring that the deployment adheres to best practices and organizational policies. The self-service nature of IDPs not only enhances developer productivity but also aligns with the broader goals of DevOps and platform engineering, which emphasize agility, efficiency, and collaboration.
+
+### Example from Epetech
+
+The context from Epetech illustrates the benefits of an IDP in a real-world scenario. Epetech's engineering platform, known as LaunchPad, provided self-service capabilities for deploying applications and managing environments. This unified platform empowered developers, reducing dependency on other teams and accelerating the development process. As a result, developers could focus on building features rather than navigating complex systems or searching for information, enhancing productivity and satisfaction.
+
+In summary, an IDP is a self-service platform that simplifies and automates the software development lifecycle, enabling developers to manage applications and environments independently while adhering to organizational standards and best practices. The self-service aspect is crucial in reducing dependency on other teams and streamlining the development process, ultimately leading to increased productivity and satisfaction.
+
+-----------------------------------------------------------------
+📖 Consulted Sources:
+  • Effective_Platform_Engineering.pdf (Page 402)
+  • Effective_Platform_Engineering.pdf (Page 386)
+  • Effective_Platform_Engineering.pdf (Page 379)
+  • Effective_Platform_Engineering.pdf (Page 2)
+
+🔬 Models & Engine Telemetry:
+  • RAG Engine:       Hybrid ChromaDB + BM25 (Phase 1)
+  • LLM Model:        qwen2.5:7b (Local Ollama Inference)
+  • Embeddings:       sentence-transformers/all-MiniLM-L6-v2
+  • Reranker:         cross-encoder/ms-marco-MiniLM-L-6-v2
+  • Agentic Steps:    1 iteration(s) | 6 candidate chunks analyzed
+-----------------------------------------------------------------
+```
+
+---
+
+### Case B: Phase 2 Output (GraphRAG / Omnigraph Engine)
+
+In Phase 2, the engine detects entities from the ontology (`internal-developer-platform` and `self-service`), traverses `knowledge_graph.json`, extracts the ontological edge `(Internal Developer Platform (IDP)) ──[ENABLES]──► (Self-Service)`, applies a score bonus to topologically connected chunks, and injects the relational topology into the LLM context.
+
+#### Command:
+```powershell
+$env:RETRIEVER_TYPE="omnigraph"; .\.venv\Scripts\python.exe src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
+```
+
+#### Terminal Output:
+```text
+[Info] Using OmnigraphRetriever (Phase 2: GraphRAG)
+
+🔍 Querying technical library...
+
+=================================================================
+💡 Tutor Response:
+=================================================================
+An Internal Developer Platform (IDP) is a critical component in platform engineering, designed to simplify and automate the software development lifecycle. According to the context from "Effective Platform Engineering" (Page 402), an IDP provides self-service interfaces to tools and services for infrastructure, deployment, security, observability, and governance. This platform is built to reduce the complexity that developers face, particularly in mastering technologies like Kubernetes, and to enable them to focus on building features rather than managing infrastructure details.
+
+### How an IDP Relates to Self-Service
+
+The relationship between an IDP and self-service is central to the platform's design and functionality. The context explicitly states that an IDP "ENABLES" self-service (Page 402). This means that the IDP provides a user-friendly interface and tools that allow developers to manage their applications and environments independently, without needing to rely on other teams. This self-service capability is a key feature that enhances developer productivity and satisfaction.
+
+#### Key Components of Self-Service in an IDP
+
+1. **Self-Service Interfaces**: The IDP offers a centralized hub for documentation, APIs, tooling, and collaboration resources. This hub serves as a self-service portal where developers can find and use the necessary tools and services they need to develop and deploy applications.
+
+2. **Automated Workflows**: The IDP includes automated application workflows and integrated CI/CD pipelines. These automated processes reduce the need for manual intervention, allowing developers to deploy new services or update existing ones with minimal effort.
+
+3. **Standardized Service Templates**: Preconfigured setups for common microservices ensure best practices are followed across teams. These templates reduce setup time and provide a solid foundation for new services, making it easier for developers to get started.
+
+4. **User-Friendly Interface**: An intuitive portal for managing services, environments, and other resources ensures that developers can easily navigate and use the platform. This user-friendly design minimizes the learning curve and enhances the overall developer experience.
+
+#### Example from Epetech (Page 379)
+
+Epetech’s LaunchPad, an internal developer platform, exemplifies the self-service capabilities of an IDP. Developers can use LaunchPad’s self-service portal to configure and deploy new microservices with a few clicks, without involving the operations team. This example highlights how an IDP can significantly reduce the time and effort required for deployment, thereby increasing developer productivity.
+
+### Conclusion
+
+In summary, an Internal Developer Platform (IDP) is a key enabler of self-service in the software development lifecycle. By providing self-service interfaces, automated workflows, standardized service templates, and a user-friendly interface, an IDP simplifies the development process and enhances developer productivity. The relationship between an IDP and self-service is thus fundamental, as the IDP's primary goal is to empower developers to manage their applications and environments independently, accelerating the development process and improving overall efficiency.
+
+**References:**
+- Effective Platform Engineering, Chankramath, Cheneweth, Oliver, Alvarez, Foreword by Kief Morris, ISBN-13: 978-1-63343-649-7, pp. 363, 379, 402.
+
+-----------------------------------------------------------------
+📖 Consulted Sources:
+  • Effective_Platform_Engineering.pdf (Page 402)
+  • Effective_Platform_Engineering.pdf (Page 386)
+  • Effective_Platform_Engineering.pdf (Page 363)
+  • Effective_Platform_Engineering.pdf (Page 379)
+
+🔬 Models & Engine Telemetry:
+  • RAG Engine:       GraphRAG Omnigraph (Phase 2)
+  • LLM Model:        qwen2.5:7b (Local Ollama Inference)
+  • Embeddings:       sentence-transformers/all-MiniLM-L6-v2
+  • Reranker:         cross-encoder/ms-marco-MiniLM-L-6-v2
+  • Agentic Steps:    1 iteration(s) | 6 candidate chunks analyzed
+-----------------------------------------------------------------
+```
+
+---
+
+### Comparative Takeaway
+
+| Dimension | Phase 1: Hybrid Retrieval | Phase 2: GraphRAG / Omnigraph |
+| :--- | :--- | :--- |
+| **Retrieval Strategy** | Vector cosine similarity + BM25 lexical tokens + Cross-Encoder rerank. | Entity recognition + BFS ontology traversal + Vector + BM25 + Topology Header. |
+| **Relational Awareness** | Unaware of abstract relationships; relies purely on textual co-occurrence in chunks. | Directly aware of directional relationships (`IDP ──[ENABLES]──► Self-Service`). |
+| **Response Framing** | Descriptive synthesis of text passages. | Structured architectural analysis explaining exact relationship mechanics. |
+| **Dependencies** | Requires ChromaDB and local embedding/reranking weights. | Runs either via local in-memory graph (`knowledge_graph.json`) or remote Omnigraph container. |
+

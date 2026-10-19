@@ -49,6 +49,10 @@ rag-tutor/
 └── README.md
 ```
 
+> [!NOTE]
+> **Understanding `knowledge_graph.json` (Seed Ontology Template):**
+> `knowledge_graph.json` (~7 KB) is provided as an out-of-the-box **seed ontology template** demonstrating how Phase 2 GraphRAG traverses entities and directional relationships. It contains **zero copyrighted text** (unlike vector embeddings). You are **not required to keep this specific data**: you can freely customize entities in [`src/ingest_graph.py`](src/ingest_graph.py) or regenerate it for your specific engineering domains.
+
 ---
 
 ## Iterative Roadmap

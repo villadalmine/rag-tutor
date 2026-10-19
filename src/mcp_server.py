@@ -1,4 +1,4 @@
-"""Servidor Model Context Protocol (MCP) para el Tutor de Manning."""
+"""Model Context Protocol (MCP) Server for Universal Technical AI Tutor."""
 
 import sys
 from pathlib import Path
@@ -11,15 +11,15 @@ try:
     from mcp.server.mcpserver import MCPServer
 
     mcp = MCPServer(
-        name="Manning Platform Engineering Tutor",
-        description="Servidor MCP para consultar libros técnicos de Manning (Kubernetes, Platform Engineering, Go, Crossplane).",
+        name="Universal Technical RAG Tutor",
+        description="MCP server for querying technical engineering books (Kubernetes, Platform Engineering, Databases, Systems Programming, AI Agents).",
     )
 except ImportError:
     from mcp.server.fastmcp import FastMCP
 
     mcp = FastMCP(
-        "Manning Platform Engineering Tutor",
-        description="Servidor MCP para consultar libros técnicos de Manning (Kubernetes, Platform Engineering, Go, Crossplane).",
+        "Universal Technical RAG Tutor",
+        description="MCP server for querying technical engineering books (Kubernetes, Platform Engineering, Databases, Systems Programming, AI Agents).",
     )
 
 from src.core import AgenticTutorCore
@@ -29,47 +29,48 @@ tutor = AgenticTutorCore()
 
 @mcp.tool()
 def consultar_libros_manning(pregunta: str) -> str:
-    """Busca y sintetiza conceptos avanzados de arquitectura, Kubernetes y Cloud-Native.
+    """Retrieves and synthesizes advanced technical architecture and systems concepts.
 
-    Utiliza el loop agéntico de auto-reflexión sobre los libros de Manning.
+    Uses the agentic self-reflection loop over the engineering book library.
 
     Args:
-        pregunta: Consulta técnica formulada por el ingeniero.
+        pregunta: Technical query formulated by the engineer.
 
     Returns:
-        Respuesta técnica detallada con citas de los libros y páginas.
+        Detailed technical response with exact book titles and page citations.
     """
     result = tutor.ask(pregunta)
-    sources = ", ".join(result["sources"]) if result["sources"] else "Sin fuentes específicas"
+    sources = ", ".join(result["sources"]) if result["sources"] else "No specific sources"
 
     output = [
-        f"### Respuesta del Tutor:\n{result['answer']}\n",
-        f"**Fuentes consultadas:** {sources}",
-        f"**Modelos y Motor:** LLM: `{result.get('llm_model')}` | Embeddings: `{result.get('embedding_model')}` | Reranker: `{result.get('reranker_model')}` | Motor: `{result.get('retriever_engine')}`",
-        f"*(Iteraciones agénticas: {result['iterations']} | Fragmentos analizados: {result['retrieved_chunks']})*",
+        f"### Tutor Response:\n{result['answer']}\n",
+        f"**Consulted Sources:** {sources}",
+        f"**Models & Engine:** LLM: `{result.get('llm_model')}` | Embeddings: `{result.get('embedding_model')}` | Reranker: `{result.get('reranker_model')}` | Engine: `{result.get('retriever_engine')}`",
+        f"*(Agentic steps: {result['iterations']} | Evaluated chunks: {result['retrieved_chunks']})*",
     ]
     return "\n\n".join(output)
 
 
 @mcp.tool()
 def buscar_codigo_yaml(termino: str) -> str:
-    """Busca coincidencias léxicas exactas de manifiestos YAML, CRDs, comandos o código Go.
+    """Performs exact lexical retrieval for YAML manifests, CRDs, CLI commands, or Go snippets.
 
     Args:
-        termino: Nombre de recurso, flag, APIVersion o snippet a buscar.
+        termino: Resource name, CLI flag, APIVersion, or code snippet to search for.
 
     Returns:
-        Fragmentos directos encontrados sin síntesis del LLM.
+        Raw extracted code chunks without LLM generative alterations.
     """
     chunks = tutor.retriever.retrieve(termino, top_k=3)
     if not chunks:
-        return f"No se encontraron fragmentos exactos para '{termino}'."
+        return f"No exact matches found for '{termino}'."
 
-    output = [f"### Coincidencias encontradas para '{termino}':\n"]
+    output = [f"### Matches found for '{termino}':\n"]
     for i, c in enumerate(chunks, 1):
-        output.append(f"#### Coincidencia {i} [{c.to_citation()}]:\n```yaml\n{c.content}\n```")
+        output.append(f"#### Match {i} [{c.to_citation()}]:\n```yaml\n{c.content}\n```")
     return "\n\n".join(output)
 
 
 if __name__ == "__main__":
     mcp.run()
+

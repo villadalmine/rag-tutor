@@ -1,4 +1,4 @@
-"""Core de Inteligencia Artificial del Tutor con loop agéntico de auto-reflexión."""
+"""AI Tutor Core with Lightweight Agentic Self-Reflection Loop."""
 
 from typing import Any, Dict, List, Optional
 from src import config
@@ -8,16 +8,16 @@ from src.retrievers.omnigraph import OmnigraphRetriever
 
 
 def get_retriever() -> BaseRetriever:
-    """Fábrica para instanciar el recuperador según la configuración (Fase 1 vs Fase 2)."""
+    """Factory to instantiate the retriever based on configuration (Phase 1 vs Phase 2)."""
     if config.RETRIEVER_TYPE == "omnigraph":
-        print("[Info] Utilizando OmnigraphRetriever (Fase 2: GraphRAG)")
+        print("[Info] Using OmnigraphRetriever (Phase 2: GraphRAG)")
         return OmnigraphRetriever()
-    print("[Info] Utilizando HybridRetriever (Fase 1: ChromaDB + BM25 + Reranker)")
+    print("[Info] Using HybridRetriever (Phase 1: ChromaDB + BM25 + Reranker)")
     return HybridRetriever()
 
 
 class AgenticTutorCore:
-    """Tutor de Plataformas con capacidad agéntica de refinamiento y verificación técnica."""
+    """Technical Platform Tutor with agentic refinement and architectural grounding."""
 
     def __init__(self, retriever: Optional[BaseRetriever] = None):
         self.retriever = retriever or get_retriever()
@@ -25,7 +25,7 @@ class AgenticTutorCore:
         self._initialize_llm()
 
     def _initialize_llm(self):
-        """Inicializa la conexión con el modelo local en Ollama."""
+        """Initializes connection to local LLM in Ollama."""
         try:
             from langchain_ollama import OllamaLLM
 
@@ -35,61 +35,67 @@ class AgenticTutorCore:
                 temperature=config.OLLAMA_TEMPERATURE,
             )
         except Exception as e:
-            print(f"[Aviso] No se pudo conectar a Ollama: {e}. Asegúrate de ejecutar 'ollama serve'.")
+            print(f"[Warning] Could not connect to Ollama: {e}. Make sure 'ollama serve' is running.")
             self._llm = None
 
     def _format_context(self, chunks: List[RetrievedChunk]) -> str:
-        """Formatea los fragmentos con delimitadores y fuentes claras."""
+        """Formats chunks with clear delimiters and citations."""
         if not chunks:
-            return "No se encontró contexto técnico específico en la biblioteca."
+            return "No specific technical context found in the library."
         formatted = []
         for i, ch in enumerate(chunks, 1):
             citation = ch.to_citation()
-            formatted.append(f"--- [Fragmento {i} | Fuente: {citation}] ---\n{ch.content}")
+            formatted.append(f"--- [Chunk {i} | Source: {citation}] ---\n{ch.content}")
         return "\n\n".join(formatted)
 
     def ask(self, question: str) -> Dict[str, Any]:
-        """Ejecuta el loop agéntico de respuesta técnica fundamentada.
+        """Executes the agentic grounded technical reasoning loop.
 
-        Flujo:
-        1. Búsqueda inicial híbrida.
-        2. Auto-evaluación del LLM sobre la suficiencia del código y contexto.
-        3. Segunda pasada complementaria si se identifican vacíos técnicos.
-        4. Generación de respuesta técnica precisa.
+        Workflow:
+        1. Initial hybrid or ontological retrieval.
+        2. LLM sufficiency self-evaluation (verifying commands, manifests, and concepts).
+        3. Secondary complementary retrieval pass if technical gaps are identified.
+        4. Rigorous technical response generation with exact citations.
         """
         if not self._llm:
             return {
-                "answer": "Error: El motor LLM local (Ollama) no está disponible. Inicia Ollama con 'ollama serve'.",
+                "answer": "Error: Local LLM engine (Ollama) is unavailable. Please run 'ollama serve'.",
                 "sources": [],
                 "iterations": 0,
             }
 
-        # Paso 1: Recuperación inicial
+        # Step 1: Initial retrieval
         chunks = self.retriever.retrieve(question, top_k=config.TOP_K_RETRIEVAL)
         iterations = 1
 
-        # Paso 2: Evaluación rápida de suficiencia (Agentic Loop liviano)
+        # Step 2: Lightweight sufficiency self-reflection
         if chunks:
             context_preview = self._format_context(chunks[:2])
-            eval_prompt = f"""Eres un revisor técnico. Evalúa si el siguiente contexto técnico contiene información suficiente para responder a la pregunta del ingeniero (especialmente verificando si hay comandos, YAMLs o código relevante).
+            eval_prompt = f"""You are a technical reviewer. Evaluate whether the following technical context contains sufficient information to answer the engineer's question (especially checking for commands, YAML manifests, or relevant code).
 
-Contexto disponible:
+Available Context:
 {context_preview}
 
-Pregunta del Ingeniero:
+Engineer's Question:
 {question}
 
-Responde EXACTAMENTE con:
-SUFICIENTE
-o bien:
-NECESITO_MAS_INFO: [concepto exacto, comando o manifest YAML que falta buscar]"""
+Respond EXACTLY with:
+SUFFICIENT
+or:
+NEED_MORE_INFO: [exact concept, command, or YAML manifest to search]"""
 
             try:
                 eval_res = self._llm.invoke(eval_prompt).strip()
-                if "NECESITO_MAS_INFO:" in eval_res:
-                    sub_query = eval_res.split("NECESITO_MAS_INFO:")[1].strip()
+                trigger_key = None
+                if "NEED_MORE_INFO:" in eval_res:
+                    trigger_key = "NEED_MORE_INFO:"
+                elif "NECESITO_MAS_INFO:" in eval_res:
+                    trigger_key = "NECESITO_MAS_INFO:"
+
+                if trigger_key:
+                    sub_query = eval_res.split(trigger_key)[1].strip()
                     if sub_query:
-                        # Paso 3: Búsqueda complementaria
+                        # Step 3: Targeted complementary retrieval
                         extra_chunks = self.retriever.retrieve(sub_query, top_k=2)
                         existing_contents = {c.content for c in chunks}
                         for ec in extra_chunks:
@@ -98,25 +104,25 @@ NECESITO_MAS_INFO: [concepto exacto, comando o manifest YAML que falta buscar]""
                                 existing_contents.add(ec.content)
                         iterations = 2
             except Exception as e:
-                print(f"[Aviso en evaluación agéntica]: {e}")
+                print(f"[Warning in agentic evaluation]: {e}")
 
-        # Paso 4: Generación de respuesta técnica final
+        # Step 4: Final grounded synthesis
         full_context = self._format_context(chunks[: config.TOP_K_FINAL])
-        system_prompt = f"""Eres un Ingeniero Principal de Plataformas y Arquitecto Senior Cloud-Native.
-Tu misión es responder con máxima rigurosidad técnica basándote EXCLUSIVAMENTE en el siguiente contexto extraído de libros de Manning.
+        system_prompt = f"""You are a Principal Systems Engineer and Senior Cloud-Native Architect.
+Your mission is to provide rigorous, accurate technical answers based EXCLUSIVELY on the following context extracted from the engineering books library.
 
-Reglas obligatorias:
-1. Si el contexto contiene manifiestos YAML, código en Go, flags de CLI o definiciones de CRDs, úsalos y explícalos de forma precisa.
-2. No inventes configuraciones inexistentes. Si el contexto no cubre algún aspecto, indícalo con transparencia.
-3. Cita explícitamente los libros o secciones de origen al explicar la arquitectura.
+Mandatory Rules:
+1. If the context contains YAML manifests, Go code, CLI flags, or CRD definitions, use and explain them accurately.
+2. Do not hallucinate non-existent configurations. If the context does not cover a specific aspect, state it transparently.
+3. Explicitly cite the source books and sections when explaining architectural concepts.
 
-Contexto Técnico Oficial de Manning:
+Official Technical Context:
 {full_context}
 
-Pregunta del Ingeniero:
+Engineer's Question:
 {question}
 
-Respuesta técnica detallada:"""
+Detailed Technical Answer:"""
 
         response = self._llm.invoke(system_prompt)
         sources = list(dict.fromkeys([c.to_citation() for c in chunks[: config.TOP_K_FINAL]]))
@@ -131,3 +137,4 @@ Respuesta técnica detallada:"""
             "embedding_model": config.EMBEDDING_MODEL_NAME,
             "reranker_model": config.RERANKER_MODEL_NAME,
         }
+

@@ -4,7 +4,7 @@
       "id": "platform-engineering",
       "label": "Discipline",
       "name": "Platform Engineering",
-      "description": "Disciplina de diseñar y construir toolchains y flujos de trabajo que habilitan el autoservicio para desarrolladores.",
+      "description": "Discipline of designing and building toolchains and workflows that enable self-service capabilities for software engineering organizations.",
       "properties": {},
       "chunk_ids": []
     },
@@ -12,7 +12,7 @@
       "id": "internal-developer-platform",
       "label": "System",
       "name": "Internal Developer Platform (IDP)",
-      "description": "Capa unificada de herramientas e infraestructura que reduce la carga cognitiva de los equipos de ingeniería.",
+      "description": "Unified layer of tools and infrastructure that reduces developer cognitive load across engineering teams.",
       "properties": {},
       "chunk_ids": []
     },
@@ -20,7 +20,7 @@
       "id": "paved-roads",
       "label": "Pattern",
       "name": "Paved Roads (Golden Paths)",
-      "description": "Caminos dorados y plantillas estandarizadas recomendadas para acelerar el desarrollo con seguridad integrada.",
+      "description": "Standardized, recommended Golden Paths and templates to accelerate development with built-in security.",
       "properties": {},
       "chunk_ids": []
     },
@@ -28,7 +28,7 @@
       "id": "self-service",
       "label": "Principle",
       "name": "Self-Service",
-      "description": "Autonomía de los equipos para aprovisionar y operar servicios sin tickets manuales entre áreas.",
+      "description": "Team autonomy to provision and operate services without manual inter-departmental ticket queues.",
       "properties": {},
       "chunk_ids": []
     },
@@ -36,7 +36,7 @@
       "id": "platform-as-a-product",
       "label": "Principle",
       "name": "Platform as a Product",
-      "description": "Gestionar la plataforma como un producto con usuarios internos, métricas de adopción y feedback continuo.",
+      "description": "Managing internal platforms as products with developer user feedback, adoption metrics, and continuous iteration.",
       "properties": {},
       "chunk_ids": []
     },
@@ -44,7 +44,7 @@
       "id": "domain-driven-design",
       "label": "Methodology",
       "name": "Domain-Driven Design (DDD)",
-      "description": "Alineación del diseño de plataformas con los límites de contexto y dominios del negocio.",
+      "description": "Alignment of platform boundaries and service APIs with bounded business domains.",
       "properties": {},
       "chunk_ids": []
     },
@@ -52,7 +52,7 @@
       "id": "ai-agent",
       "label": "Architecture",
       "name": "AI Agent",
-      "description": "Entidad autónoma basada en LLM capaz de razonar, planificar y utilizar herramientas externas.",
+      "description": "Autonomous LLM-driven architecture capable of reasoning, planning, and executing tools.",
       "properties": {},
       "chunk_ids": []
     },
@@ -60,7 +60,7 @@
       "id": "react-pattern",
       "label": "Pattern",
       "name": "ReAct Pattern",
-      "description": "Ciclo interactivo de Razonamiento y Acción (Thought, Action, Observation) para resolver tareas complejas.",
+      "description": "Interactive Reasoning and Action (Thought, Action, Observation) loop for complex problem-solving.",
       "properties": {},
       "chunk_ids": []
     },
@@ -68,7 +68,7 @@
       "id": "langgraph",
       "label": "Framework",
       "name": "LangGraph",
-      "description": "Framework para coordinar agentes cíclicos y con estado usando grafos dirigidos.",
+      "description": "Orchestration framework for building stateful, multi-agent cyclical workflows using directed graphs.",
       "properties": {},
       "chunk_ids": []
     },
@@ -76,7 +76,7 @@
       "id": "tools-and-function-calling",
       "label": "Component",
       "name": "Tools & Function Calling",
-      "description": "Capacidad del LLM para invocar funciones tipadas y comunicarse con sistemas externos.",
+      "description": "Model capability to trigger typed function executions and interact with external systems.",
       "properties": {},
       "chunk_ids": []
     },
@@ -84,7 +84,7 @@
       "id": "langsmith",
       "label": "Tool",
       "name": "LangSmith",
-      "description": "Plataforma de observabilidad, evaluación y depuración de llamadas y trazas de agentes.",
+      "description": "Observability, debugging, and tracing platform for agent execution runs.",
       "properties": {},
       "chunk_ids": []
     },
@@ -92,7 +92,7 @@
       "id": "rag",
       "label": "Architecture",
       "name": "RAG (Retrieval-Augmented Generation)",
-      "description": "Técnica que combina recuperación de documentos en bases vectoriales con generación condicionada en LLMs.",
+      "description": "Retrieval-Augmented Generation architecture combining external vector/lexical retrieval with LLM generation.",
       "properties": {},
       "chunk_ids": []
     },
@@ -100,7 +100,7 @@
       "id": "fine-tuning",
       "label": "Methodology",
       "name": "Fine-Tuning",
-      "description": "Adaptación de los pesos de un modelo preentrenado a un estilo, tarea o terminología específica.",
+      "description": "Supervised adaptation of pre-trained model weights to specialized domains, styles, or tasks.",
       "properties": {},
       "chunk_ids": []
     },
@@ -108,7 +108,7 @@
       "id": "lora",
       "label": "Technique",
       "name": "LoRA (Low-Rank Adaptation)",
-      "description": "Afinamiento eficiente de parámetros (PEFT) congelando el modelo base y entrenando matrices de bajo rango.",
+      "description": "Low-Rank Adaptation technique (PEFT) freezing base weights and training small rank-decomposition matrices.",
       "properties": {},
       "chunk_ids": []
     },
@@ -116,7 +116,7 @@
       "id": "vector-store",
       "label": "Component",
       "name": "Vector Store (ChromaDB)",
-      "description": "Almacenamiento y búsqueda de similitud por embeddings de texto de alta dimensionalidad.",
+      "description": "High-dimensional text embedding storage enabling semantic similarity search.",
       "properties": {},
       "chunk_ids": []
     },
@@ -124,7 +124,7 @@
       "id": "reranker",
       "label": "Component",
       "name": "Reranker (Cross-Encoder)",
-      "description": "Modelo secundario que reordena los candidatos recuperados computando atención cruzada query-documento.",
+      "description": "Secondary neural cross-encoder scoring query-document attention to reorder retrieved candidates.",
       "properties": {},
       "chunk_ids": []
     }

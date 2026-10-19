@@ -1,9 +1,9 @@
-"""Fase 2: Recuperador Ontológico y Vectorial (Omnigraph & GraphRAG).
+"""Phase 2: Ontological & Vector Retriever (Omnigraph & GraphRAG).
 
-Soporta dos modalidades complementarias:
-1. Conexión HTTP / MCP nativa con servicio Omnigraph (si está levantado el daemon).
-2. Motor de Grafo Ontológico Local (ejecuta traversal de entidades y aristas en memoria
-   usando `knowledge_graph.json`, sin requerir servicios externos).
+Supports two complementary operational modes:
+1. Native HTTP / MCP connection to Omnigraph service daemon (if running).
+2. Local In-Memory Ontological Graph Engine (executes entity traversal and relation discovery
+   using `knowledge_graph.json`, requiring zero external services).
 """
 
 from pathlib import Path
@@ -17,7 +17,7 @@ from .hybrid import HybridRetriever
 
 
 class OmnigraphRetriever(BaseRetriever):
-    """Recuperador ontológico de Fase 2: Une relaciones de grafo con vectores y BM25."""
+    """Phase 2 Ontological Retriever: Unifies graph relationships with vectors and BM25."""
 
     def __init__(
         self,
@@ -29,12 +29,12 @@ class OmnigraphRetriever(BaseRetriever):
         self.branch = branch or config.OMNIGRAPH_BRANCH
         self.graph_path = graph_path or config.GRAPH_DATA_PATH
 
-        # Cargar motor de grafo local y fallback híbrido
+        # Load local graph engine and hybrid fallback
         self.local_kg = KnowledgeGraph.load(self.graph_path)
         self.hybrid_fallback = HybridRetriever()
 
     def check_connection(self) -> bool:
-        """Verifica si el daemon o contenedor de Omnigraph está activo vía HTTP."""
+        """Checks if the remote Omnigraph daemon/container is reachable via HTTP."""
         try:
             resp = requests.get(f"{self.api_url}/health", timeout=1.5)
             return resp.status_code == 200
@@ -42,7 +42,7 @@ class OmnigraphRetriever(BaseRetriever):
             return False
 
     def _query_remote_omnigraph(self, query: str, top_k: int) -> List[RetrievedChunk]:
-        """Consulta el servicio remoto de Omnigraph (Lance + Graph)."""
+        """Queries the remote Omnigraph service (Lance + Graph)."""
         endpoint = f"{self.api_url}/api/v1/graphs/query"
         payload = {
             "branch": self.branch,
@@ -68,11 +68,11 @@ class OmnigraphRetriever(BaseRetriever):
                 )
             return results
         except Exception as e:
-            print(f"[Aviso Omnigraph Remoto]: Error al consultar daemon ({e}). Usando motor local.")
+            print(f"[Omnigraph Remote Warning]: Could not reach daemon ({e}). Falling back to local graph engine.")
             return []
 
     def _match_entities_in_query(self, query: str) -> List[str]:
-        """Detecta entidades del grafo mencionadas en la consulta."""
+        """Detects graph entities mentioned in the query."""
         q_lower = query.lower()
         matched = []
         for node_id, node in self.local_kg.nodes.items():
@@ -81,7 +81,7 @@ class OmnigraphRetriever(BaseRetriever):
         return matched
 
     def _traverse_local_graph(self, matched_nodes: List[str]) -> Dict[str, Any]:
-        """Recorre las dependencias y relaciones de los conceptos encontrados."""
+        """Traverses dependencies and relationships of matched concepts."""
         related_nodes: Set[str] = set()
         relations_summary: List[str] = []
 
@@ -104,27 +104,27 @@ class OmnigraphRetriever(BaseRetriever):
         }
 
     def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedChunk]:
-        """Ejecuta recuperación de Fase 2 (Ontología de Grafo + Búsqueda Vectorial/Léxica)."""
-        # 1. Si el daemon de Omnigraph está corriendo, usarlo prioritariamente
+        """Executes Phase 2 retrieval (Graph Ontology + Vector / Lexical Search)."""
+        # 1. If Omnigraph daemon is running, prioritize remote query
         if self.check_connection():
             remote_results = self._query_remote_omnigraph(query, top_k)
             if remote_results:
                 return remote_results
 
-        # 2. Motor de Grafo Local (GraphRAG en memoria)
+        # 2. Local Graph Engine (In-Memory GraphRAG)
         base_chunks = self.hybrid_fallback.retrieve(query, top_k=top_k * 2)
         if not base_chunks:
             return []
 
         matched_entities = self._match_entities_in_query(query)
         if not matched_entities or not self.local_kg.nodes:
-            # Si no hay conceptos de grafo específicos, devolver top híbrido
+            # If no specific graph concepts match, return top hybrid candidates
             return base_chunks[:top_k]
 
         graph_context = self._traverse_local_graph(matched_entities)
         related_node_ids = set(graph_context["node_ids"])
 
-        # Priorizar fragmentos que contengan los conceptos relacionados descubiertos por el grafo
+        # Prioritize chunks mentioning related concepts discovered via graph traversal
         for chunk in base_chunks:
             content_lower = chunk.content.lower()
             bonus = 0.0
@@ -137,13 +137,14 @@ class OmnigraphRetriever(BaseRetriever):
         base_chunks.sort(key=lambda x: x.score, reverse=True)
         final_chunks = base_chunks[:top_k]
 
-        # Si encontramos relaciones en el grafo, enriquecemos el primer fragmento con la topología
+        # Inject architectural topology into the top chunk if graph relations were discovered
         if graph_context["relations"] and final_chunks:
             topo_header = (
-                "[Topología de Arquitectura Relacionada en el Grafo]:\n"
+                "[Related Architecture Topology in Knowledge Graph]:\n"
                 + "\n".join(f"  • {rel}" for rel in graph_context["relations"])
                 + "\n\n"
             )
             final_chunks[0].content = topo_header + final_chunks[0].content
 
         return final_chunks
+

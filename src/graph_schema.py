@@ -1,4 +1,4 @@
-"""Esquema ontológico para el Grafo de Conocimiento (Fase 2: Omnigraph & GraphRAG)."""
+"""Ontological schema for Knowledge Graph (Phase 2: Omnigraph & GraphRAG)."""
 
 import json
 from dataclasses import asdict, dataclass, field
@@ -8,29 +8,29 @@ from typing import Any, Dict, List, Optional, Set
 
 @dataclass
 class GraphNode:
-    """Representa una entidad o concepto técnico en el grafo."""
+    """Represents a technical entity or concept in the graph."""
 
-    id: str  # Identificador único normalizado (ej. "platform-engineering", "langgraph")
-    label: str  # Tipo de nodo: Concept, Framework, Component, Pattern, Book
-    name: str  # Nombre legible (ej. "Platform Engineering", "LangGraph")
+    id: str  # Unique normalized identifier (e.g., "platform-engineering", "langgraph")
+    label: str  # Node label: Concept, Framework, Component, Pattern, Book
+    name: str  # Human-readable name (e.g., "Platform Engineering", "LangGraph")
     description: str = ""
     properties: Dict[str, Any] = field(default_factory=dict)
-    chunk_ids: List[str] = field(default_factory=list)  # Enlace a fragmentos de texto
+    chunk_ids: List[str] = field(default_factory=list)  # Associated text chunk IDs
 
 
 @dataclass
 class GraphEdge:
-    """Representa una relación dirigida entre dos entidades."""
+    """Represents a directed relationship between two entities."""
 
-    source: str  # ID del nodo origen
-    target: str  # ID del nodo destino
+    source: str  # Source node ID
+    target: str  # Target node ID
     relation: str  # DEPENDS_ON, IMPLEMENTS, EXPLAINS, COMPARES_WITH, INTEGRATES_WITH
     weight: float = 1.0
     properties: Dict[str, Any] = field(default_factory=dict)
 
 
 class KnowledgeGraph:
-    """Contenedor en memoria del grafo de conocimiento con capacidades de traversal."""
+    """In-memory knowledge graph container with BFS traversal capabilities."""
 
     def __init__(self):
         self.nodes: Dict[str, GraphNode] = {}
@@ -49,7 +49,7 @@ class KnowledgeGraph:
         self._adjacency[edge.source].append(edge)
 
     def get_neighbors(self, node_id: str, max_depth: int = 1) -> Set[str]:
-        """Recorre el grafo en anchura (BFS) para encontrar conceptos conectados."""
+        """Breadth-first search (BFS) graph traversal to discover connected concepts."""
         visited = set()
         queue = [(node_id, 0)]
 
@@ -66,7 +66,7 @@ class KnowledgeGraph:
         return visited
 
     def save(self, filepath: Path):
-        """Serializa el grafo a formato JSON."""
+        """Serializes the graph into JSON format."""
         data = {
             "nodes": [asdict(n) for n in self.nodes.values()],
             "edges": [asdict(e) for e in self.edges],
@@ -76,7 +76,7 @@ class KnowledgeGraph:
 
     @classmethod
     def load(cls, filepath: Path) -> "KnowledgeGraph":
-        """Carga el grafo desde JSON."""
+        """Loads the graph from a JSON file."""
         kg = cls()
         if not filepath.exists():
             return kg
@@ -91,3 +91,4 @@ class KnowledgeGraph:
             kg.add_edge(GraphEdge(**e_data))
 
         return kg
+

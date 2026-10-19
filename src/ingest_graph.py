@@ -1,9 +1,14 @@
-"""Script de Ingesta y Construcción del Grafo de Conocimiento (Fase 2: GraphRAG / Omnigraph)."""
+"""Knowledge Graph Ingestion & Construction Script (Phase 2: GraphRAG / Omnigraph).
+
+This script builds a seed ontology for Platform Engineering, AI Agents, and LLMs.
+NOTE: This file provides a structural template. Users can adapt or replace these entities
+and relations according to their own technical books and domain needs.
+"""
 
 import sys
 from pathlib import Path
 
-# Configurar encoding UTF-8 en consola de Windows
+# Configure UTF-8 encoding on Windows console
 if sys.stdout:
     sys.stdout.reconfigure(encoding="utf-8")
 if sys.stderr:
@@ -18,11 +23,11 @@ from src.graph_schema import GraphEdge, GraphNode, KnowledgeGraph
 
 
 def build_platform_knowledge_graph() -> KnowledgeGraph:
-    """Construye la ontología estructural de Platform Engineering, AI Agents y LLMs."""
+    """Builds the structural ontology for Platform Engineering, AI Agents, and LLMs."""
     kg = KnowledgeGraph()
 
     # =========================================================================
-    # 1. Nodos: Conceptos de Platform Engineering (Effective Platform Engineering)
+    # 1. Nodes: Platform Engineering Concepts
     # =========================================================================
     nodes_data = [
         # Platform Engineering
@@ -30,99 +35,99 @@ def build_platform_knowledge_graph() -> KnowledgeGraph:
             id="platform-engineering",
             label="Discipline",
             name="Platform Engineering",
-            description="Disciplina de diseñar y construir toolchains y flujos de trabajo que habilitan el autoservicio para desarrolladores.",
+            description="Discipline of designing and building toolchains and workflows that enable self-service capabilities for software engineering organizations.",
         ),
         GraphNode(
             id="internal-developer-platform",
             label="System",
             name="Internal Developer Platform (IDP)",
-            description="Capa unificada de herramientas e infraestructura que reduce la carga cognitiva de los equipos de ingeniería.",
+            description="Unified layer of tools and infrastructure that reduces developer cognitive load across engineering teams.",
         ),
         GraphNode(
             id="paved-roads",
             label="Pattern",
             name="Paved Roads (Golden Paths)",
-            description="Caminos dorados y plantillas estandarizadas recomendadas para acelerar el desarrollo con seguridad integrada.",
+            description="Standardized, recommended Golden Paths and templates to accelerate development with built-in security.",
         ),
         GraphNode(
             id="self-service",
             label="Principle",
             name="Self-Service",
-            description="Autonomía de los equipos para aprovisionar y operar servicios sin tickets manuales entre áreas.",
+            description="Team autonomy to provision and operate services without manual inter-departmental ticket queues.",
         ),
         GraphNode(
             id="platform-as-a-product",
             label="Principle",
             name="Platform as a Product",
-            description="Gestionar la plataforma como un producto con usuarios internos, métricas de adopción y feedback continuo.",
+            description="Managing internal platforms as products with developer user feedback, adoption metrics, and continuous iteration.",
         ),
         GraphNode(
             id="domain-driven-design",
             label="Methodology",
             name="Domain-Driven Design (DDD)",
-            description="Alineación del diseño de plataformas con los límites de contexto y dominios del negocio.",
+            description="Alignment of platform boundaries and service APIs with bounded business domains.",
         ),
-        # AI Agents & Frameworks (AI Agents and Applications & HF in Action)
+        # AI Agents & Frameworks
         GraphNode(
             id="ai-agent",
             label="Architecture",
             name="AI Agent",
-            description="Entidad autónoma basada en LLM capaz de razonar, planificar y utilizar herramientas externas.",
+            description="Autonomous LLM-driven architecture capable of reasoning, planning, and executing tools.",
         ),
         GraphNode(
             id="react-pattern",
             label="Pattern",
             name="ReAct Pattern",
-            description="Ciclo interactivo de Razonamiento y Acción (Thought, Action, Observation) para resolver tareas complejas.",
+            description="Interactive Reasoning and Action (Thought, Action, Observation) loop for complex problem-solving.",
         ),
         GraphNode(
             id="langgraph",
             label="Framework",
             name="LangGraph",
-            description="Framework para coordinar agentes cíclicos y con estado usando grafos dirigidos.",
+            description="Orchestration framework for building stateful, multi-agent cyclical workflows using directed graphs.",
         ),
         GraphNode(
             id="tools-and-function-calling",
             label="Component",
             name="Tools & Function Calling",
-            description="Capacidad del LLM para invocar funciones tipadas y comunicarse con sistemas externos.",
+            description="Model capability to trigger typed function executions and interact with external systems.",
         ),
         GraphNode(
             id="langsmith",
             label="Tool",
             name="LangSmith",
-            description="Plataforma de observabilidad, evaluación y depuración de llamadas y trazas de agentes.",
+            description="Observability, debugging, and tracing platform for agent execution runs.",
         ),
         # LLMs in Production
         GraphNode(
             id="rag",
             label="Architecture",
             name="RAG (Retrieval-Augmented Generation)",
-            description="Técnica que combina recuperación de documentos en bases vectoriales con generación condicionada en LLMs.",
+            description="Retrieval-Augmented Generation architecture combining external vector/lexical retrieval with LLM generation.",
         ),
         GraphNode(
             id="fine-tuning",
             label="Methodology",
             name="Fine-Tuning",
-            description="Adaptación de los pesos de un modelo preentrenado a un estilo, tarea o terminología específica.",
+            description="Supervised adaptation of pre-trained model weights to specialized domains, styles, or tasks.",
         ),
         GraphNode(
             id="lora",
             label="Technique",
             name="LoRA (Low-Rank Adaptation)",
-            description="Afinamiento eficiente de parámetros (PEFT) congelando el modelo base y entrenando matrices de bajo rango.",
+            description="Low-Rank Adaptation technique (PEFT) freezing base weights and training small rank-decomposition matrices.",
         ),
         GraphNode(
             id="vector-store",
             label="Component",
             name="Vector Store (ChromaDB)",
-            description="Almacenamiento y búsqueda de similitud por embeddings de texto de alta dimensionalidad.",
+            description="High-dimensional text embedding storage enabling semantic similarity search.",
         ),
         GraphNode(
             id="reranker",
             label="Component",
             name="Reranker (Cross-Encoder)",
-            description="Modelo secundario que reordena los candidatos recuperados computando atención cruzada query-documento.",
+            description="Secondary neural cross-encoder scoring query-document attention to reorder retrieved candidates.",
         ),
     ]
 
@@ -130,7 +135,7 @@ def build_platform_knowledge_graph() -> KnowledgeGraph:
         kg.add_node(n)
 
     # =========================================================================
-    # 2. Aristas: Relaciones Ontológicas y Dependencias Técnicas
+    # 2. Edges: Ontological Relations & Technical Dependencies
     # =========================================================================
     edges_data = [
         # Platform Engineering relations
@@ -149,7 +154,7 @@ def build_platform_knowledge_graph() -> KnowledgeGraph:
         GraphEdge(source="fine-tuning", target="lora", relation="OPTIMIZED_BY"),
         GraphEdge(source="rag", target="vector-store", relation="RETRIEVES_FROM"),
         GraphEdge(source="rag", target="reranker", relation="REORDERED_BY"),
-        # Cross-Domain relations (Agentes en Plataforma y LLMs en Plataforma)
+        # Cross-Domain relations (Agents in Platforms & LLMs in Platforms)
         GraphEdge(source="ai-agent", target="rag", relation="LEVERAGES_KNOWLEDGE_VIA"),
         GraphEdge(source="platform-engineering", target="rag", relation="OPERATES"),
         GraphEdge(source="ai-agent", target="internal-developer-platform", relation="AUTOMATES_TASKS_ON"),
@@ -162,28 +167,29 @@ def build_platform_knowledge_graph() -> KnowledgeGraph:
 
 
 def run_graph_ingestion():
-    """Genera y persiste el grafo de conocimiento para Fase 2."""
+    """Generates and persists the knowledge graph for Phase 2."""
     print("=" * 65)
-    print(" 🕸️  Iniciando Ingesta de Grafo Ontológico (Fase 2: GraphRAG)")
+    print(" 🕸️  Starting Ontological Graph Ingestion (Phase 2: GraphRAG)")
     print("=" * 65)
 
     kg = build_platform_knowledge_graph()
     kg.save(config.GRAPH_DATA_PATH)
 
-    print(f"\n[OK] Grafo de conocimiento generado y persistido en:")
+    print(f"\n[OK] Knowledge graph generated and saved at:")
     print(f"     {config.GRAPH_DATA_PATH}")
-    print(f"[+] Total de Entidades (Nodos): {len(kg.nodes)}")
-    print(f"[+] Total de Relaciones (Aristas): {len(kg.edges)}")
-    print("\n[+] Resumen de Entidades Principales:")
+    print(f"[+] Total Entities (Nodes): {len(kg.nodes)}")
+    print(f"[+] Total Relationships (Edges): {len(kg.edges)}")
+    print("\n[+] Summary of Primary Entities:")
     for n in list(kg.nodes.values())[:8]:
         print(f"    • [{n.label}] {n.name}: {n.description[:60]}...")
 
     print("\n" + "=" * 65)
-    print(" ¡Fase 2 (GraphRAG / Omnigraph) lista!")
-    print(" Para activar la búsqueda de grafos por defecto, define:")
+    print(" 🎉 Phase 2 (GraphRAG / Omnigraph) Ready!")
+    print(" To activate GraphRAG by default, set:")
     print("   $env:RETRIEVER_TYPE = 'omnigraph'")
     print("=" * 65)
 
 
 if __name__ == "__main__":
     run_graph_ingestion()
+
