@@ -6,12 +6,15 @@ Soporta dos modos:
 2. Ingesta Completa / Reset ('--reset' o '--force'): Borra la base existente y reindexa todo desde cero.
 """
 
+import hashlib
+import json
 import os
 import pickle
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Set
+from typing import List, Set, Dict, Any
 
 # Configurar encoding UTF-8 en consola de Windows
 if sys.stdout:
@@ -24,6 +27,35 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src import config
+
+MANIFEST_PATH = ROOT_DIR / "data" / ".ingestion_manifest.json"
+
+
+def compute_file_sha256(file_path: Path) -> str:
+    """Computes SHA-256 content hash of a file for change detection."""
+    hasher = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        while chunk := f.read(65536):
+            hasher.update(chunk)
+    return hasher.hexdigest()
+
+
+def load_ingestion_manifest() -> Dict[str, Any]:
+    """Loads recorded file hashes from the ingestion manifest."""
+    if not MANIFEST_PATH.exists():
+        return {}
+    try:
+        with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_ingestion_manifest(manifest: Dict[str, Any]):
+    """Persists updated file hashes to the ingestion manifest."""
+    MANIFEST_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(MANIFEST_PATH, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
 
 
 def get_indexed_books(chroma_dir: Path) -> Set[str]:
@@ -66,37 +98,50 @@ def run_ingestion(reset: bool = False):
         return
 
     # Si se solicitó reset explícito, borrar índices existentes
+    manifest = {} if reset else load_ingestion_manifest()
     if reset:
         print("\n[!] Modo --reset activado: Eliminando índices previos...")
         if config.CHROMA_DIR.exists():
             shutil.rmtree(config.CHROMA_DIR, ignore_errors=True)
         if config.BM25_INDEX_PATH.exists():
             config.BM25_INDEX_PATH.unlink(missing_ok=True)
+        if MANIFEST_PATH.exists():
+            MANIFEST_PATH.unlink(missing_ok=True)
         already_indexed = set()
     else:
         already_indexed = get_indexed_books(config.CHROMA_DIR)
 
-    # Identificar libros nuevos
-    books_to_process = [pdf for pdf in pdf_files if pdf.name not in already_indexed]
+    # Identificar libros nuevos o modificados mediante hash SHA-256
+    books_to_process = []
+    unchanged_books = []
+
+    for pdf in pdf_files:
+        current_hash = compute_file_sha256(pdf)
+        recorded = manifest.get(pdf.name, {})
+        if pdf.name in already_indexed and recorded.get("sha256") == current_hash:
+            unchanged_books.append((pdf.name, current_hash))
+        else:
+            books_to_process.append((pdf, current_hash))
 
     print(f"\n[+] Total de libros encontrados en books/: {len(pdf_files)}")
-    if already_indexed:
-        print(f"[✓] Libros ya indexados previamente ({len(already_indexed)}):")
-        for name in sorted(already_indexed):
-            print(f"    • {name}")
+    if unchanged_books:
+        print(f"[✓] Libros ya indexados y sin cambios (SHA-256 verificado, {len(unchanged_books)}):")
+        for name, h in unchanged_books:
+            print(f"    • {name} (sha256: {h[:12]}...)")
 
     if not books_to_process:
         print("\n" + "=" * 65)
         print(" ✨ Todos los libros de la carpeta books/ ya están indexados.")
-        print(" No hay libros nuevos que requieran procesamiento.")
+        print(" No hay libros nuevos ni modificaciones que requieran cómputo de embeddings.")
         print(" (Si deseas forzar una reindexación completa desde cero, ejecuta:")
         print("  python src/ingest.py --reset)")
         print("=" * 65)
         return
 
-    print(f"\n[+] Nuevos libros detectados para procesar ({len(books_to_process)}):")
-    for pdf in books_to_process:
-        print(f"    ➜ {pdf.name}")
+    print(f"\n[+] Libros a procesar o actualizar ({len(books_to_process)}):")
+    for pdf, h in books_to_process:
+        status = "Nuevo" if pdf.name not in manifest else "Modificado (SHA-256 cambió)"
+        print(f"    ➜ {pdf.name} [{status}]")
 
     try:
         from langchain_community.document_loaders import PyMuPDFLoader
@@ -111,16 +156,19 @@ def run_ingestion(reset: bool = False):
 
     # 1. Extracción de los NUEVOS libros únicamente
     new_raw_docs = []
-    for pdf in books_to_process:
+    book_pages_map = {}
+    for pdf, current_hash in books_to_process:
         print(f"\n[+] Extrayendo texto y páginas: {pdf.name}...")
         try:
             loader = PyMuPDFLoader(str(pdf))
             docs = loader.load()
             for d in docs:
                 d.metadata["source"] = pdf.name
+                d.metadata["sha256"] = current_hash
                 if "page" in d.metadata:
                     d.metadata["page"] = int(d.metadata["page"]) + 1
             new_raw_docs.extend(docs)
+            book_pages_map[pdf.name] = len(docs)
             print(f"    Páginas extraídas: {len(docs)}")
         except Exception as e:
             print(f"    [Error procesando {pdf.name}]: {e}")
@@ -194,6 +242,16 @@ def run_ingestion(reset: bool = False):
 
     with open(config.BM25_INDEX_PATH, "wb") as f:
         pickle.dump({"bm25": updated_bm25, "corpus": combined_corpus}, f)
+
+    # 5. Guardar manifiesto de hashes SHA-256 para futuras ejecuciones incrementales instantáneas
+    for pdf, current_hash in books_to_process:
+        manifest[pdf.name] = {
+            "sha256": current_hash,
+            "total_pages": book_pages_map.get(pdf.name, 0),
+            "indexed_at": datetime.now(timezone.utc).isoformat(),
+        }
+    save_ingestion_manifest(manifest)
+    print(f"[OK] Manifiesto incremental actualizado en: {MANIFEST_PATH}")
 
     print(f"[OK] Índice BM25 actualizado con {len(combined_corpus)} fragmentos totales en: {config.BM25_INDEX_PATH}")
     print("\n" + "=" * 65)

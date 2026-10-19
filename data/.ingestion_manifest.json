@@ -1,0 +1,98 @@
+{
+  "Acing_the_System_Design_Interview.pdf": {
+    "sha256": "355799299097dcd873abb010ae70d2ce99ce15a9d6619055aa1254154479bbcd",
+    "indexed_at": "2026-10-19T23:40:22.875362+00:00"
+  },
+  "AI_Agents_and_Applications.pdf": {
+    "sha256": "594d3d100f80ac07c58993858727261839e75f8a0e2551d4a398bcad2c3df710",
+    "indexed_at": "2026-10-19T23:40:22.884906+00:00"
+  },
+  "AI_Agents_in_Action_Second_Edition.pdf": {
+    "sha256": "853ec9725ae252a3908a1fcd0ee1be7aa6dc61a03c19a88331c10679f0cacb56",
+    "indexed_at": "2026-10-19T23:40:22.899114+00:00"
+  },
+  "API_Security_in_Action.pdf": {
+    "sha256": "c11df098fc664443021410f3992ad3a448c3b339e6f4611362dafc976b2dc870",
+    "indexed_at": "2026-10-19T23:40:22.904760+00:00"
+  },
+  "Bootstrapping_Microservices_with_Docker.pdf": {
+    "sha256": "8ba3d92e82e824cd482c914c09410a1b23533cd064b4e9b8af51b34724833f97",
+    "indexed_at": "2026-10-19T23:40:22.914986+00:00"
+  },
+  "Build_a_Reasoning_Model_(From_Scratch).pdf": {
+    "sha256": "d2bc9ab6a1d41c743b3bd4c4e36af5d491c0f1dea39a1262661c095f12229ca5",
+    "indexed_at": "2026-10-19T23:40:22.924623+00:00"
+  },
+  "Build_an_AI_Agent_(From_Scratch).pdf": {
+    "sha256": "da3dfaa1bd48c788e888224da8b0ac115b3423d0836a7553a9974ead73049e48",
+    "indexed_at": "2026-10-19T23:40:22.928775+00:00"
+  },
+  "Chaos_Engineering.pdf": {
+    "sha256": "47d6879925070b6dfbe966288f389cfdcef6dba6ec282b5328131e9eb5237d8f",
+    "indexed_at": "2026-10-19T23:40:22.939566+00:00"
+  },
+  "Core_Kubernetes.pdf": {
+    "sha256": "334e3990af21ce414ed1d1ce1629f1ff53617cc2b514dff22af9e0dedbf3d116",
+    "indexed_at": "2026-10-19T23:40:22.943431+00:00"
+  },
+  "Effective_Platform_Engineering.pdf": {
+    "sha256": "51b82efb2e3459f8623385e7c2cc14353debbfb25e95f77c8e041b8dcbe8d974",
+    "indexed_at": "2026-10-19T23:40:22.950908+00:00"
+  },
+  "GitOps_and_Kubernetes.pdf": {
+    "sha256": "9eb7d42eef19eff9b3565389720a802ebf9f6c4a77179d57bac755a552953b89",
+    "indexed_at": "2026-10-19T23:40:22.963704+00:00"
+  },
+  "Graph_Databases_in_Action.pdf": {
+    "sha256": "ed4266266b305d6f338bcf456fd9b5fa5d8c3b970fd8657100550edfaef2cf9b",
+    "indexed_at": "2026-10-19T23:40:22.965776+00:00"
+  },
+  "Grokking_Concurrency.pdf": {
+    "sha256": "f9cb648b7e5c0adac5bf7e58a26345f4340a6f8ffc2bd1ece4686ec24c62aa0c",
+    "indexed_at": "2026-10-19T23:40:22.983093+00:00"
+  },
+  "Hugging_Face_in_Action.pdf": {
+    "sha256": "f3143029586162e9c27baf9423e0e11d7891a0094c7eb31436e9e61e7dee6a5e",
+    "indexed_at": "2026-10-19T23:40:23.015967+00:00"
+  },
+  "Knative_in_Action.pdf": {
+    "sha256": "b661530bb314c060bf146d54cf93dcd2fd134d2a05e23a9076650756410503e6",
+    "indexed_at": "2026-10-19T23:40:23.027406+00:00"
+  },
+  "LLMs_in_Production.pdf": {
+    "sha256": "a22472de9e47afa913c991816d946942090def27e2dd1081f14421f4fe11d3ca",
+    "indexed_at": "2026-10-19T23:40:23.038119+00:00"
+  },
+  "Machine_Learning_Platform_Engineering.pdf": {
+    "sha256": "aa8daba80c4a4349f87f70efd7eff72f8c97517c5817a064818e3d8d153e1127",
+    "indexed_at": "2026-10-19T23:40:23.063478+00:00"
+  },
+  "Machine_Learning_Systems.pdf": {
+    "sha256": "0a2ade1a75c8d7a5485e2d3ef6c0dd575714d92ac09a1afd25a7927fcc294b06",
+    "indexed_at": "2026-10-19T23:40:23.068222+00:00"
+  },
+  "Natural_Language_Processing_in_Action.pdf": {
+    "sha256": "60116d39bf18c4508945808ce456d6d2ec61d224b66b712c377e260d52764661",
+    "indexed_at": "2026-10-19T23:40:23.078255+00:00"
+  },
+  "Platform_Engineering_on_Kubernetes.pdf": {
+    "sha256": "7626f4f9bce710fa7da04257dd714221b804030f9a769fe3c59faa440cf7e38e",
+    "indexed_at": "2026-10-19T23:40:23.099440+00:00"
+  },
+  "RabbitMQ_in_Depth.pdf": {
+    "sha256": "f4f8aa3e88726357f613b39330b461fc55bda29e046402486bcb77ad62cb121e",
+    "indexed_at": "2026-10-19T23:40:23.107501+00:00"
+  },
+  "Reinforcement_Learning_from_Human_Feedba.pdf": {
+    "sha256": "665b5a0e8ad6c7e2ed45f41b61603dbee5fdeb4197b61c858d70555ae494504e",
+    "indexed_at": "2026-10-19T23:40:23.115254+00:00"
+  },
+  "Securing_DevOps.pdf": {
+    "sha256": "eed34c3df27617cb096505307cfb3c97323910a93d073cadf3021736ece8b08f",
+    "indexed_at": "2026-10-19T23:40:23.128021+00:00"
+  },
+  "The_Quick_Python_Book_Third_Edition.pdf": {
+    "sha256": "61dd2cc4cd970586ad059c26aac9cdf6c1572f0086b7b1c89feb837c48a6398c",
+    "indexed_at": "2026-10-19T23:40:23.135432+00:00"
+  }
+}

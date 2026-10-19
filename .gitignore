@@ -31,6 +31,7 @@ venv/
 chroma_db/
 bm25_index.pkl
 *.lance/
+data/kuzu_db*
 
 # Libros (para no versionar PDFs pesados con derechos de autor)
 books/*.pdf

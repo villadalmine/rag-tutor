@@ -5,10 +5,11 @@ langchain-chroma>=0.1.4
 langchain-huggingface>=0.1.0
 langchain-ollama>=0.2.0
 
-# Base de datos vectorial y búsqueda léxica
+# Base de datos vectorial, búsqueda léxica y grafos
 chromadb>=0.5.5
 rank-bm25>=0.2.2
 sentence-transformers>=3.1.0
+kuzu>=0.11.0
 
 # Procesamiento de PDFs
 pymupdf>=1.24.10

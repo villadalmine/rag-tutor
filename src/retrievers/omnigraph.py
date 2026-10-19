@@ -12,6 +12,7 @@ import requests
 
 from src import config
 from src.graph_schema import KnowledgeGraph
+from src.kuzu_graph import KuzuGraphEngine
 from .base import BaseRetriever, RetrievedChunk
 from .hybrid import HybridRetriever
 
@@ -32,6 +33,11 @@ class OmnigraphRetriever(BaseRetriever):
         # Load local graph engine and hybrid fallback
         self.local_kg = KnowledgeGraph.load(self.graph_path)
         self.hybrid_fallback = HybridRetriever()
+
+        # Embedded KùzuDB Cypher engine with graceful in-memory fallback
+        self.kuzu_engine = KuzuGraphEngine()
+        if self.kuzu_engine.available and not self.kuzu_engine.is_populated():
+            self.kuzu_engine.sync_from_knowledge_graph(self.local_kg)
 
     def check_connection(self) -> bool:
         """Checks if the remote Omnigraph daemon/container is reachable via HTTP."""
@@ -81,10 +87,28 @@ class OmnigraphRetriever(BaseRetriever):
         return matched
 
     def _traverse_local_graph(self, matched_nodes: List[str]) -> Dict[str, Any]:
-        """Traverses dependencies and relationships of matched concepts."""
+        """Traverses dependencies and relationships of matched concepts using KùzuDB (Cypher) or BFS."""
         related_nodes: Set[str] = set()
         relations_summary: List[str] = []
 
+        # 1. Try declarative Cypher query via KùzuDB
+        if self.kuzu_engine.available and self.kuzu_engine.is_populated():
+            for n_id in matched_nodes:
+                related_nodes.add(n_id)
+                rows = self.kuzu_engine.get_related_concepts(n_id)
+                for r in rows:
+                    related_nodes.add(r["src_id"])
+                    related_nodes.add(r["tgt_id"])
+                    rel_str = f"({r['src_name']}) ──[{r['relation']}]──► ({r['tgt_name']})"
+                    if rel_str not in relations_summary:
+                        relations_summary.append(rel_str)
+            if relations_summary:
+                return {
+                    "node_ids": list(related_nodes),
+                    "relations": relations_summary[:6],
+                }
+
+        # 2. Fallback to in-memory BFS on KnowledgeGraph
         for n_id in matched_nodes:
             neighbors = self.local_kg.get_neighbors(n_id, max_depth=1)
             related_nodes.update(neighbors)
