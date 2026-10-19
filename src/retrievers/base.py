@@ -1,4 +1,4 @@
-"""Interfaz abstracta y modelos para los motores de recuperación."""
+"""Abstract interface and data models for retrieval engines."""
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 @dataclass
 class RetrievedChunk:
-    """Representación normalizada de un fragmento recuperado."""
+    """Normalized representation of a retrieved content chunk."""
 
     content: str
     source: str
@@ -16,24 +16,25 @@ class RetrievedChunk:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_citation(self) -> str:
-        """Formatea la fuente para citación en la respuesta."""
+        """Formats the source for grounded citations."""
         if self.page:
-            return f"{self.source} (pág. {self.page})"
+            return f"{self.source} (Page {self.page})"
         return self.source
 
 
 class BaseRetriever(ABC):
-    """Contrato base que deben implementar todos los recuperadores (Hybrid, Omnigraph, etc.)."""
+    """Base contract implemented by all retrieval engines (Hybrid, Omnigraph, etc.)."""
 
     @abstractmethod
     def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedChunk]:
-        """Recupera los fragmentos más relevantes para una consulta dada.
+        """Retrieves top-k relevant chunks for a given query.
 
         Args:
-            query: Pregunta o término de búsqueda.
-            top_k: Cantidad de fragmentos finales deseados.
+            query: Question or search term.
+            top_k: Number of desired candidate chunks.
 
         Returns:
-            Lista de RetrievedChunk ordenados por relevancia.
+            List of RetrievedChunk ordered by relevance.
         """
         pass
+

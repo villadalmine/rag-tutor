@@ -295,7 +295,19 @@ To see how the engine operates in practice on real hardware, consult **[USE_CASE
 
 ---
 
+## Copyright, Fair Use & Citation Notice
+
+This repository is an open-source technical benchmark and local study tool (licensed under Apache 2.0).
+
+- **Zero Content Redistribution (BYOB - Bring Your Own Books):** This repository **does NOT host, mirror, or redistribute** any copyrighted book files, PDFs, full chapters, or commercial training datasets. Users must supply their own legally acquired reference documents in their local `data/` or `books/` directory.
+- **Index Privacy & Data Sovereignty:** Vector databases (`chroma_db/`), lexical indexes (`bm25_index.pkl`), and private model caches are strictly excluded via `.gitignore` to prevent distributing derivative mathematical representations of private texts.
+- **Nominative Fair Use of Book Titles & Citations:** All book titles (*Effective Platform Engineering*, *Core Kubernetes*, *GitOps and Kubernetes*), publisher names (e.g. Manning Publications), and author attributions appearing in benchmark logs or citation metadata are the property of their respective copyright holders. Under international copyright law and US Fair Use principles (Circular 33, US Copyright Office), titles and short factual identifiers are not copyrightable; they are referenced strictly for **bibliographic citation, scholarly attribution, and academic reproducibility**.
+- **Educational Scope:** The system functions purely as an educational retrieval agent. The authoritative technical sources remain the original books and official documentation.
+
+---
+
 ## License
 
 This project is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE) for details.
+
 

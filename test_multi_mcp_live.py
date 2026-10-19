@@ -27,6 +27,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from src.core import AgenticTutorCore
+from src.retrievers.base import RetrievedChunk
 from src.retrievers.hybrid import HybridRetriever
 from src.retrievers.omnigraph import OmnigraphRetriever
 
@@ -64,31 +65,51 @@ def run_integrated_session():
     for line in summary_excerpt.split("\n"):
         print(f"      {line}")
 
-    # Step 2: Query rag-tutor in Phase 1 (Hybrid RAG: Vectors + BM25 + Cross-Encoder)
+    # Create normalized external chunk from study-cybercirujas MCP
+    cyber_chunk = RetrievedChunk(
+        content=topic_res.get("content", "")[:3500],
+        source=f"study-cybercirujas MCP: {top_hit['cert'].upper()} Topic {top_hit['id']} ({top_hit['title']})",
+        page=None,
+        score=10.0,
+        metadata={"cert": top_hit["cert"], "topic": top_hit["id"], "type": "official_syllabus"},
+    )
+
+    # Step 2: Query rag-tutor in Phase 1 (Hybrid RAG: Vectors + BM25 + Cross-Encoder) with external syllabus chunk
     print("\n" + "-" * 70)
     print("[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 1: Hybrid)...")
     print("  Query: 'How do mutating and validating admission webhooks enforce platform governance?'")
     tutor_p1 = AgenticTutorCore(retriever=HybridRetriever())
-    p1_res = tutor_p1.ask("How do mutating and validating admission webhooks enforce platform governance?")
+    p1_res = tutor_p1.ask(
+        "How do mutating and validating admission webhooks enforce platform governance?",
+        extra_chunks=[cyber_chunk],
+    )
     print("\n--- Phase 1 Grounded Answer Preview ---")
     p1_lines = p1_res["answer"].split("\n")
-    print("\n".join(p1_lines[:8]) + "\n...")
-    print(f"Sources cited: {p1_res['sources']}")
+    print("\n".join(p1_lines[:12]) + "\n...")
+    print("\n📖 Consulted Sources (Phase 1):")
+    for s in p1_res["sources"]:
+        print(f"  • {s}")
 
-    # Step 3: Query rag-tutor in Phase 2 (GraphRAG: Omnigraph / Knowledge Graph Traversal)
+    # Step 3: Query rag-tutor in Phase 2 (GraphRAG: Omnigraph / Knowledge Graph Traversal) with external syllabus chunk
     print("\n" + "-" * 70)
     print("[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 2: GraphRAG)...")
     print("  Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'")
     tutor_p2 = AgenticTutorCore(retriever=OmnigraphRetriever())
-    p2_res = tutor_p2.ask("How does an Internal Developer Platform relate to admission controllers and paved roads?")
+    p2_res = tutor_p2.ask(
+        "How does an Internal Developer Platform relate to admission controllers and paved roads?",
+        extra_chunks=[cyber_chunk],
+    )
     print("\n--- Phase 2 Graph-Grounded Answer Preview ---")
     p2_lines = p2_res["answer"].split("\n")
-    print("\n".join(p2_lines[:8]) + "\n...")
-    print(f"Sources cited: {p2_res['sources']}")
+    print("\n".join(p2_lines[:12]) + "\n...")
+    print("\n📖 Consulted Sources (Phase 2):")
+    for s in p2_res["sources"]:
+        print(f"  • {s}")
 
     print("\n" + "=" * 70)
     print(" 🎉 Session Complete: Both MCPs and Both RAG Phases Verified Live!")
     print("=" * 70)
+
 
 if __name__ == "__main__":
     run_integrated_session()

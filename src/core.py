@@ -48,11 +48,11 @@ class AgenticTutorCore:
             formatted.append(f"--- [Chunk {i} | Source: {citation}] ---\n{ch.content}")
         return "\n\n".join(formatted)
 
-    def ask(self, question: str) -> Dict[str, Any]:
+    def ask(self, question: str, extra_chunks: Optional[List[RetrievedChunk]] = None) -> Dict[str, Any]:
         """Executes the agentic grounded technical reasoning loop.
 
         Workflow:
-        1. Initial hybrid or ontological retrieval.
+        1. Initial hybrid or ontological retrieval (augmented with any external MCP chunks).
         2. LLM sufficiency self-evaluation (verifying commands, manifests, and concepts).
         3. Secondary complementary retrieval pass if technical gaps are identified.
         4. Rigorous technical response generation with exact citations.
@@ -65,7 +65,8 @@ class AgenticTutorCore:
             }
 
         # Step 1: Initial retrieval
-        chunks = self.retriever.retrieve(question, top_k=config.TOP_K_RETRIEVAL)
+        retrieved_chunks = self.retriever.retrieve(question, top_k=config.TOP_K_RETRIEVAL)
+        chunks = (extra_chunks or []) + retrieved_chunks
         iterations = 1
 
         # Step 2: Lightweight sufficiency self-reflection
@@ -96,9 +97,9 @@ NEED_MORE_INFO: [exact concept, command, or YAML manifest to search]"""
                     sub_query = eval_res.split(trigger_key)[1].strip()
                     if sub_query:
                         # Step 3: Targeted complementary retrieval
-                        extra_chunks = self.retriever.retrieve(sub_query, top_k=2)
+                        extra_retrieved = self.retriever.retrieve(sub_query, top_k=2)
                         existing_contents = {c.content for c in chunks}
-                        for ec in extra_chunks:
+                        for ec in extra_retrieved:
                             if ec.content not in existing_contents:
                                 chunks.append(ec)
                                 existing_contents.add(ec.content)
@@ -107,14 +108,15 @@ NEED_MORE_INFO: [exact concept, command, or YAML manifest to search]"""
                 print(f"[Warning in agentic evaluation]: {e}")
 
         # Step 4: Final grounded synthesis
-        full_context = self._format_context(chunks[: config.TOP_K_FINAL])
+        total_k = config.TOP_K_FINAL + (len(extra_chunks) if extra_chunks else 0)
+        full_context = self._format_context(chunks[:total_k])
         system_prompt = f"""You are a Principal Systems Engineer and Senior Cloud-Native Architect.
-Your mission is to provide rigorous, accurate technical answers based EXCLUSIVELY on the following context extracted from the engineering books library.
+Your mission is to provide rigorous, accurate technical answers based EXCLUSIVELY on the following technical context (which includes official certification syllabi and engineering books).
 
 Mandatory Rules:
-1. If the context contains YAML manifests, Go code, CLI flags, or CRD definitions, use and explain them accurately.
+1. If the context contains certification requirements, YAML manifests, Go code, CLI flags, or CRD definitions, use and explain them accurately.
 2. Do not hallucinate non-existent configurations. If the context does not cover a specific aspect, state it transparently.
-3. Explicitly cite the source books and sections when explaining architectural concepts.
+3. Explicitly cite all sources (certification syllabi, books, and page numbers) when explaining concepts.
 
 Official Technical Context:
 {full_context}
@@ -125,7 +127,7 @@ Engineer's Question:
 Detailed Technical Answer:"""
 
         response = self._llm.invoke(system_prompt)
-        sources = list(dict.fromkeys([c.to_citation() for c in chunks[: config.TOP_K_FINAL]]))
+        sources = list(dict.fromkeys([c.to_citation() for c in chunks[:total_k]]))
 
         return {
             "answer": response,
@@ -137,4 +139,5 @@ Detailed Technical Answer:"""
             "embedding_model": config.EMBEDDING_MODEL_NAME,
             "reranker_model": config.RERANKER_MODEL_NAME,
         }
+
 

@@ -102,14 +102,17 @@ The following live session was executed and verified against both `study-cyberci
   Query: 'How do mutating and validating admission webhooks enforce platform governance?'
 
 --- Phase 1 Grounded Answer Preview ---
-Mutating and validating admission webhooks are key components in enforcing platform governance by ensuring that certain policies and requirements are met before resources are deployed to the Kubernetes cluster. Let's break down how these webhooks work and their roles in governance.
+Mutating and validating admission webhooks are key components in enforcing platform governance in Kubernetes by providing a flexible and extensible way to enforce policies and validate API requests before they are persisted in the cluster. Let's break down how each type of webhook works and their role in governance.
 
-### Validating Admission Webhooks
-According to the context from "Effective_Platform_Engineering.pdf" (Page 121), validating admission webhooks are used to perform tasks before deployment. These webhooks are part of the admission controller, which allows for the creation of validating webhooks that can execute any desired task prior to deployment. This decouples governance requirements from the development process, ensuring that compliance and security standards are met without overly controlling the development workflow.
+### Mutating Admission Webhooks
+Mutating admission webhooks are designed to modify the objects being created or updated before they are persisted in the cluster. These webhooks can inject or modify fields in the API objects, ensuring that the objects meet certain criteria before they are applied.
 
-In the context of "Core_Kubernetes.pdf" (Page 286), validating admission webhooks are described as components that can validate the API objects being created in the cluster. They can either validate, mutate, or both the objects. From a security standpoint, this provides significant control and auditing capabilities. The Kubernetes API server uses the `--authorization-mode=RBAC` flag to enable role-based access control (RBAC), which is essential for managing permissions and ensuring that only authorized entities can perform actions.
+#### Example Scenario: Enforcing Container Security Policies
+Consider a scenario where you want to enforce that all containers running in the cluster are not allowed to run as `root`. You can use a mutating webhook to automatically set the `runAsUser` field to a non-root value for any `Pod` that is created or updated...
 ...
-Sources cited:
+
+📖 Consulted Sources (Phase 1):
+  • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
   • Effective_Platform_Engineering.pdf (Page 143)
   • GitOps_and_Kubernetes.pdf (Page 212)
   • Effective_Platform_Engineering.pdf (Page 121)
@@ -120,14 +123,19 @@ Sources cited:
   Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'
 
 --- Phase 2 Graph-Grounded Answer Preview ---
-The Internal Developer Platform (IDP) and admission controllers are integral components in the architecture of a platform designed to support self-service and compliance. The relationship between the IDP and admission controllers can be understood through the concept of "paved roads" (also known as "golden paths"), which are well-defined, easy-to-follow paths that guide developers to make decisions that align with the organization's policies and standards.
+An Internal Developer Platform (IDP) plays a crucial role in integrating admission controllers and the concept of "paved roads" (also known as "golden paths") into the development and deployment processes. Let's break down the relationship between these components based on the provided context.
 
-### Relationship Between IDP and Admission Controllers
-1. Paved Roads (Golden Paths) and IDP:
-   - Paved Roads: Standardized, preconfigured paths guiding developers toward organizational compliance.
-   - IDP's Role: Enforces paved roads via templates and automated CI/CD pipelines (LaunchPad).
+### Internal Developer Platform (IDP) and Admission Controllers
+1. **Standardized Service Templates**:
+   - **IDP** provides **standardized service templates** that ensure best practices are followed across teams. These templates can include preconfigured setups for common microservices, which can be validated and enforced by admission controllers.
+2. **Automated Service Provisioning**:
+   - **IDP** enables **automated service provisioning** in a controlled environment. Admission controllers validate service configurations before deployment, ensuring correct resource requests and limits.
+3. **Integrated CI/CD Pipelines**:
+   - **IDP** integrates CI/CD pipelines that automate testing, security scans, and deployments, ensuring that only validated and compliant code is deployed.
 ...
-Sources cited:
+
+📖 Consulted Sources (Phase 2):
+  • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
   • Effective_Platform_Engineering.pdf (Page 143)
   • Effective_Platform_Engineering.pdf (Page 35)
   • Effective_Platform_Engineering.pdf (Page 363)
