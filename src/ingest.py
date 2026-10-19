@@ -152,21 +152,20 @@ def run_ingestion(reset: bool = False):
     print(f"[+] Generando embeddings ({config.EMBEDDING_MODEL_NAME}) y guardando en ChromaDB...")
     embeddings = HuggingFaceEmbeddings(model_name=config.EMBEDDING_MODEL_NAME)
 
-    if already_indexed and config.CHROMA_DIR.exists():
-        # Anexar sin reprocesar los libros anteriores
-        vectorstore = Chroma(
-            persist_directory=str(config.CHROMA_DIR),
-            embedding_function=embeddings,
-        )
-        vectorstore.add_documents(new_chunks)
+    # ChromaDB tiene un límite interno de 5461 documentos por batch (Rust bindings)
+    batch_size = 2000
+    vectorstore = Chroma(
+        persist_directory=str(config.CHROMA_DIR),
+        embedding_function=embeddings,
+    )
+    for i in range(0, len(new_chunks), batch_size):
+        batch = new_chunks[i : i + batch_size]
+        vectorstore.add_documents(batch)
+        print(f"    [Progreso ChromaDB] {min(i + batch_size, len(new_chunks))}/{len(new_chunks)} fragmentos guardados...")
+
+    if already_indexed:
         print(f"[OK] {len(new_chunks)} fragmentos nuevos anexados a ChromaDB exitosamente.")
     else:
-        # Creación inicial
-        vectorstore = Chroma.from_documents(
-            documents=new_chunks,
-            embedding=embeddings,
-            persist_directory=str(config.CHROMA_DIR),
-        )
         print(f"[OK] ChromaDB creado con éxito en: {config.CHROMA_DIR}")
 
     # 4. Actualizar índice léxico BM25
