@@ -9,7 +9,7 @@ Agnostic, sovereign local AI tutor for technical books (Software Engineering, Ku
 
 It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -42,6 +42,7 @@ rag-tutor/
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
+├── USE_CASES_AND_EXAMPLES.md  # Step-by-step setup walkthrough and real terminal outputs
 ├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparency, traceability, and guardrails (EU AI Act)
 ├── VERIFICATION_TESTS.md      # Empirical verification test report and reproduction steps
 ├── LICENSE                    # Apache 2.0 Open Source License
@@ -278,6 +279,19 @@ Read the execution logs, model telemetry, and reproduction instructions in [VERI
 
 ---
 
+## Real Use Cases & Terminal Outputs
+
+To see how the engine operates in practice on real hardware, consult **[USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md)**. It documents:
+1. **"How I Made It Work" Walkthrough:** From clean virtualenv initialization to handling ChromaDB's 5,461-chunk batch limits with 2,000-chunk slicing during ingestion.
+2. **Real Terminal Output 1:** Deep K8s Internals (Mutating vs Validating Admission Controllers).
+3. **Real Terminal Output 2:** Agentic Self-Reflection (Golden Paths & Developer Cognitive Load with automatic literature query reformulation).
+4. **Real Terminal Output 3:** Systems & AI Trade-offs (Fine-Tuning vs RAG).
+5. **Real Terminal Output 4:** Pure Lexical Retrieval (`buscar_codigo_yaml` for exact manifest extraction).
+6. **Real Terminal Output 5:** Multi-MCP Certification Study Session paired with [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas).
+
+---
+
 ## License
 
 This project is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE) for details.
+
