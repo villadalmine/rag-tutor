@@ -32,6 +32,10 @@ class QueryResponse(BaseModel):
     sources: List[str]
     iterations: int
     retrieved_chunks: int
+    retriever_engine: str
+    llm_model: str
+    embedding_model: str
+    reranker_model: str
 
 
 @app.get("/health", tags=["Sistema"])
@@ -41,8 +45,11 @@ def health_check() -> Dict[str, Any]:
         "status": "online",
         "retriever_type": config.RETRIEVER_TYPE,
         "ollama_model": config.OLLAMA_MODEL,
+        "embedding_model": config.EMBEDDING_MODEL_NAME,
+        "reranker_model": config.RERANKER_MODEL_NAME,
         "chroma_dir_exists": config.CHROMA_DIR.exists(),
         "bm25_index_exists": config.BM25_INDEX_PATH.exists(),
+        "knowledge_graph_exists": config.GRAPH_DATA_PATH.exists(),
     }
 
 
@@ -58,6 +65,10 @@ def chat_endpoint(payload: QueryRequest):
         sources=result["sources"],
         iterations=result["iterations"],
         retrieved_chunks=result["retrieved_chunks"],
+        retriever_engine=result["retriever_engine"],
+        llm_model=result["llm_model"],
+        embedding_model=result["embedding_model"],
+        reranker_model=result["reranker_model"],
     )
 
 

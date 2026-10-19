@@ -126,4 +126,8 @@ Respuesta técnica detallada:"""
             "sources": sources,
             "iterations": iterations,
             "retrieved_chunks": len(chunks),
+            "retriever_engine": config.RETRIEVER_TYPE,
+            "llm_model": config.OLLAMA_MODEL,
+            "embedding_model": config.EMBEDDING_MODEL_NAME,
+            "reranker_model": config.RERANKER_MODEL_NAME,
         }

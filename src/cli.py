@@ -37,7 +37,14 @@ def run_single_query(tutor: AgenticTutorCore, question: str):
     print("📖 Fuentes consultadas:")
     for src in result["sources"]:
         print(f"  • {src}")
-    print(f"*(Iteraciones agénticas: {result['iterations']} | Fragmentos analizados: {result['retrieved_chunks']})*")
+
+    engine_name = "GraphRAG Omnigraph (Fase 2)" if result.get("retriever_engine") == "omnigraph" else "Híbrido ChromaDB + BM25 (Fase 1)"
+    print("\n🔬 Modelos y Motor Utilizados en la Investigación:")
+    print(f"  • Motor RAG:        {engine_name}")
+    print(f"  • Modelo LLM:       {result.get('llm_model')} (Inferencia Local Ollama)")
+    print(f"  • Embeddings:       {result.get('embedding_model')}")
+    print(f"  • Reranker:         {result.get('reranker_model')}")
+    print(f"  • Pasos Agénticos:  {result.get('iterations')} iteración(es) | {result.get('retrieved_chunks')} fragmentos técnicos analizados")
     print("-" * 65)
 
 

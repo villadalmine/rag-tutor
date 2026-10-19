@@ -45,6 +45,7 @@ def consultar_libros_manning(pregunta: str) -> str:
     output = [
         f"### Respuesta del Tutor:\n{result['answer']}\n",
         f"**Fuentes consultadas:** {sources}",
+        f"**Modelos y Motor:** LLM: `{result.get('llm_model')}` | Embeddings: `{result.get('embedding_model')}` | Reranker: `{result.get('reranker_model')}` | Motor: `{result.get('retriever_engine')}`",
         f"*(Iteraciones agénticas: {result['iterations']} | Fragmentos analizados: {result['retrieved_chunks']})*",
     ]
     return "\n\n".join(output)
