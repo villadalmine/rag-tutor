@@ -57,6 +57,26 @@ rag-tutor/
 
 ---
 
+## Sistema de Metadatos y Clasificación Universal (Zero-Config)
+
+El sistema incorpora un motor de auto-catalogación determinista que permite agregar **cualquier libro técnico** (PostgreSQL, React, Rust, Ciberseguridad, Kubernetes, etc.) sin configuración manual:
+
+```mermaid
+flowchart LR
+    A["Arrastras PDFs variados a books/"] --> B["python src/ingest.py"]
+    B --> C["1. Auto-Perfilado Léxico del Libro\n(Asigna dominio: cloud_native, databases, web, etc.)"]
+    B --> D["2. Detección Sintáctica por Fragmento\n(has_code: true, code_lang: yaml, sql, rust, etc.)"]
+    C & D --> E["ChromaDB + BM25 con Pre-filtrado"]
+```
+
+1. **Auto-Perfilado en la Ingesta (Zero-Config):** Al colocar nuevos PDFs en `books/` y ejecutar `python src/ingest.py`, el sistema lee la portada y tabla de contenidos (TOC) y asigna automáticamente el dominio temático (`cloud_native`, `databases_and_storage`, `web_and_frontend`, `systems_programming`, `devsecops`, `ai_agents`, `mlops`, `general_technical`), guardándolo en `metadata_registry.json`.
+2. **Detección Sintáctica por Fragmento:** Analiza el código dentro de cada fragmento y marca automáticamente si contiene código (`has_code: true`) y su lenguaje exacto (`code_lang: yaml | go | python | sql | rust | bash | typescript`).
+3. **Búsquedas Filtradas de Alta Precisión:** Permite al usuario en la CLI, a agentes de IA vía MCP y a clientes HTTP filtrar por dominio y por lenguaje exacto, acelerando la búsqueda y eliminando la dilución semántica.
+
+Consulta la guía técnica con ejemplos prácticos paso a paso en [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
+
+---
+
 ## Autenticación Opcional en Hugging Face (HF_TOKEN)
 
 > [!NOTE]

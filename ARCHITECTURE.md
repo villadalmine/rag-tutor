@@ -115,3 +115,24 @@ La Fase 1 implementa un stack 100% autónomo y autocontenido en Python que corre
 
 > **Conclusión del Equipo:**  
 > Comenzamos desplegando y validando la **Fase 1**. Una vez que los libros estén indexados y hayamos evaluado la calidad de las respuestas en situaciones de alta interconexión arquitectónica, activamos el conector de **Omnigraph** dentro de la abstracción `BaseRetriever`.
+
+---
+
+## 6. Decisión de Arquitectura: Motor de Metadatos y Clasificación Universal (Zero-Config)
+
+### Contexto y Problema
+Al escalar la biblioteca a decenas de fuentes técnicas heterogéneas (más de 23.000 fragmentos), la búsqueda puramente vectorial sufre de:
+1. **Dilución semántica por términos polisémicos:** Palabras como *"pipeline"*, *"controller"*, *"cluster"* tienen significados dispares en Kubernetes, MLOps, Streaming y Bases de Datos.
+2. **Ceguera de código:** Dificultad para aislar ejemplos de sintaxis pura (YAML, Go, SQL, Rust) frente a párrafos explicativos teóricos.
+
+### Decisión de Diseño: Cascada Determinista en 2 Niveles
+En lugar de depender de un LLM para etiquetar fragmentos (lento, costoso y no reproducible), implementamos un motor determinista:
+1. **Nivel Macro (Libro):** Auto-perfilado léxico analizando las primeras páginas del PDF (TOC y prefacio) para asignar el dominio (`cloud_native`, `ai_agents`, `mlops`, `databases_and_storage`, `systems_programming`, `web_and_frontend`, `devsecops_and_security`, etc.) y persistirlo en `metadata_registry.json`.
+2. **Nivel Micro (Fragmento):** Detección sintáctica pura por expresiones regulares y firmas de lenguaje (`has_code`, `code_lang: yaml|go|python|sql|rust|bash|typescript`, `is_heading`).
+3. **Mecanismo de Contingencia:** Libros atípicos reciben el dominio universal `general_technical` con tags autogenerados por frecuencia TF-IDF.
+
+### Impacto Operativo
+- **Pre-filtering HNSW:** ChromaDB filtra por metadatos escalares antes de computar similitudes coseno, reduciendo el espacio de búsqueda vectorial de 23k+ a menos de 5k fragmentos en < 5 ms.
+- **Transición a Fase 2:** Los metadatos de dominio y tags alimentan directamente las propiedades de los nodos y aristas del Grafo de Conocimiento en Omnigraph / Lance.
+- Consulta el documento de implementación en [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
+
