@@ -46,24 +46,24 @@ Both servers are implemented using the official Anthropic / Linux Foundation `mc
 ## 3. Configuration Setup in Open WebUI & MCP Clients
 
 ### Option A: Configuration in Claude Desktop or Goose CLI (`claude_desktop_config.json`)
-Add both servers to `%APPDATA%\Claude\claude_desktop_config.json`:
+Add both servers to your agent's MCP configuration (`~/.config/Claude/claude_desktop_config.json`):
 
 ```json
 {
   "mcpServers": {
     "rag-tutor": {
-      "command": "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\.venv\\Scripts\\python.exe",
+      "command": "/path/to/rag-tutor/.venv/bin/python",
       "args": [
-        "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\src\\mcp_server.py"
+        "/path/to/rag-tutor/src/mcp_server.py"
       ]
     },
     "study-cybercirujas": {
-      "command": "python",
+      "command": "/path/to/study-cybercirujas/.venv/bin/python",
       "args": [
         "-m",
         "teach.mcp_server"
       ],
-      "cwd": "C:\\path\\to\\study-cybercirujas"
+      "cwd": "/path/to/study-cybercirujas"
     }
   }
 }
@@ -76,19 +76,64 @@ In **Open WebUI**, connect the servers via:
 
 ---
 
-## 4. End-to-End Simulation: The Certification Study Tutor
+## 4. End-to-End Verified Live Session: The Certification Study Tutor
 
-### User Prompt in Open WebUI:
-> *"I want to study Admission Controllers for the CKA certification. Give me the official exam objective, the practice exercise from Cybercirujas, and explain in detail using the engineering books how to implement it with YAML manifests and OPA Gatekeeper."*
+The following live session was executed and verified against both `study-cybercirujas`'s corpus and `rag-tutor`'s local engine across Phase 1 (Hybrid) and Phase 2 (GraphRAG):
 
-### Empirical Execution Flow:
-1. **Tool Invocation 1 (Cybercirujas):** Open WebUI calls `get_topic("cka", "2.1", "en")`.
-   - Retrieves the official CNCF syllabus objective: *"Understand Admission Controllers and Webhooks"*.
-   - Retrieves the hands-on break-and-fix lab scenario.
-2. **Tool Invocation 2 (RAG Tutor):** Open WebUI calls `consultar_libros_manning("Admission Controllers validation and OPA Gatekeeper")`.
-   - Retrieves relevant chunks from **Core Kubernetes (Page 286)** and **Effective Platform Engineering (Pages 122, 127)**.
-   - Extracts the exact webhook configuration YAML manifest and the `image.sha` validation flow.
-3. **Local LLM Synthesis:**
-   - Presents the official exam syllabus context.
-   - Provides the hands-on lab break scenario.
-   - Delivers in-depth engineering theory with verified page citations and executable YAML.
+```text
+======================================================================
+ 🎓 LIVE MULTI-MCP ORCHESTRATION SESSION (STUDY + RAG-TUTOR)
+======================================================================
+
+[MCP Client] Calling Tool: study-cybercirujas.search_topics('admission controllers')...
+  --> Found Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
+  --> Certification:    Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
+
+[MCP Client] Calling Tool: study-cybercirujas.get_topic('cnpe', '3.4')...
+  --> Official Study Guide Excerpt:
+      # Study Guide: Domain 3.4 — Using Policy Engines and Admission Controllers for Governance
+      **Certification:** CNCF Certified Cloud Native Platform Engineer (CNPE)  
+      **Domain Weight:** 3%  
+      **Target Role:** Principal Platform Architect / Senior SRE  
+      ---
+
+----------------------------------------------------------------------
+[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 1: Hybrid)...
+  Query: 'How do mutating and validating admission webhooks enforce platform governance?'
+
+--- Phase 1 Grounded Answer Preview ---
+Mutating and validating admission webhooks are key components in enforcing platform governance by ensuring that certain policies and requirements are met before resources are deployed to the Kubernetes cluster. Let's break down how these webhooks work and their roles in governance.
+
+### Validating Admission Webhooks
+According to the context from "Effective_Platform_Engineering.pdf" (Page 121), validating admission webhooks are used to perform tasks before deployment. These webhooks are part of the admission controller, which allows for the creation of validating webhooks that can execute any desired task prior to deployment. This decouples governance requirements from the development process, ensuring that compliance and security standards are met without overly controlling the development workflow.
+
+In the context of "Core_Kubernetes.pdf" (Page 286), validating admission webhooks are described as components that can validate the API objects being created in the cluster. They can either validate, mutate, or both the objects. From a security standpoint, this provides significant control and auditing capabilities. The Kubernetes API server uses the `--authorization-mode=RBAC` flag to enable role-based access control (RBAC), which is essential for managing permissions and ensuring that only authorized entities can perform actions.
+...
+Sources cited:
+  • Effective_Platform_Engineering.pdf (Page 143)
+  • GitOps_and_Kubernetes.pdf (Page 212)
+  • Effective_Platform_Engineering.pdf (Page 121)
+  • Core_Kubernetes.pdf (Page 286)
+
+----------------------------------------------------------------------
+[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 2: GraphRAG)...
+  Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'
+
+--- Phase 2 Graph-Grounded Answer Preview ---
+The Internal Developer Platform (IDP) and admission controllers are integral components in the architecture of a platform designed to support self-service and compliance. The relationship between the IDP and admission controllers can be understood through the concept of "paved roads" (also known as "golden paths"), which are well-defined, easy-to-follow paths that guide developers to make decisions that align with the organization's policies and standards.
+
+### Relationship Between IDP and Admission Controllers
+1. Paved Roads (Golden Paths) and IDP:
+   - Paved Roads: Standardized, preconfigured paths guiding developers toward organizational compliance.
+   - IDP's Role: Enforces paved roads via templates and automated CI/CD pipelines (LaunchPad).
+...
+Sources cited:
+  • Effective_Platform_Engineering.pdf (Page 143)
+  • Effective_Platform_Engineering.pdf (Page 35)
+  • Effective_Platform_Engineering.pdf (Page 363)
+  • Effective_Platform_Engineering.pdf (Page 381)
+
+======================================================================
+ 🎉 Session Complete: Both MCPs and Both RAG Phases Verified Live!
+======================================================================
+```

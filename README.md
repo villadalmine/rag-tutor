@@ -39,6 +39,7 @@ rag-tutor/
 │       ├── hybrid.py          # Phase 1: ChromaDB + BM25 + Cross-Encoder Reranker
 │       └── omnigraph.py       # Phase 2: Omnigraph connector (Remote + Local GraphRAG)
 ├── requirements.txt           # Python dependencies
+├── test_multi_mcp_live.py     # Live end-to-end verification of study-cybercirujas + rag-tutor (Phases 1 & 2)
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
@@ -100,11 +101,11 @@ Read the detailed guide with practical examples in [METADATA_SYSTEM.md](METADATA
 If you ever wish to connect your personal Hugging Face account for higher download rate limits or private models:
 1. Create a free *Read* token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
 2. Set it in your environment:
-   ```powershell
-   $env:HF_TOKEN = "hf_your_token_here"
+   ```bash
+   export HF_TOKEN="hf_your_token_here"
    ```
    Or via the official CLI:
-   ```powershell
+   ```bash
    huggingface-cli login
    ```
 If no token is set, warnings are automatically suppressed and execution runs silently offline.
@@ -125,11 +126,8 @@ If no token is set, warnings are automatically suppressed and execution runs sil
 
 1. **Create and activate a virtual environment:**
    ```bash
-   python -m venv venv
-   # On Windows PowerShell:
-   .\venv\Scripts\Activate.ps1
-   # On Linux / macOS / WSL:
-   source venv/bin/activate
+   python -m venv .venv
+   source .venv/bin/activate
    ```
 
 2. **Install dependencies:**
@@ -159,19 +157,19 @@ The tutor can be used in three complementary modes depending on your workflow:
 Fast, zero-overhead terminal queries without requiring a browser or external client.
 
 #### A. Direct query argument (single-line execution)
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "Explain how to design a reactive AI Agent"
+```bash
+python src/cli.py "Explain how to design a reactive AI Agent"
 ```
 
 #### B. Interactive Chat loop (continuous session)
 Run without arguments for an interactive REPL:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py
+```bash
+python src/cli.py
 ```
 ```text
 =================================================================
  📚 Universal Technical AI Tutor (Interactive Console)
- Type your technical query or 'exit' / 'salir' to quit.
+ Type your technical query or 'exit' / 'quit' to quit.
 =================================================================
 
 > Question:
@@ -191,8 +189,8 @@ Goodbye!
 Exposes your book library as native function-calling tools to external AI agents in your terminal or IDE (such as **Claude Desktop**, **Goose CLI**, or **Antigravity**).
 
 #### Start the server manually (stdio):
-```powershell
-.\.venv\Scripts\python.exe src/mcp_server.py
+```bash
+python src/mcp_server.py
 ```
 
 #### Exposed Tools:
@@ -206,9 +204,9 @@ Exposes your book library as native function-calling tools to external AI agents
 {
   "mcpServers": {
     "rag-tutor": {
-      "command": "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\.venv\\Scripts\\python.exe",
+      "command": "/path/to/rag-tutor/.venv/bin/python",
       "args": [
-        "C:\\Users\\rino\\Documents\\GitHub\\rag-tutor\\src\\mcp_server.py"
+        "/path/to/rag-tutor/src/mcp_server.py"
       ]
     }
   }
@@ -222,8 +220,8 @@ Exposes your book library as native function-calling tools to external AI agents
 Exposes the tutor over standard HTTP, allowing integration with Web frontends, scripts, or **Open WebUI**.
 
 #### Start the API server:
-```powershell
-.\.venv\Scripts\python.exe src/api.py
+```bash
+python src/api.py
 ```
 Default URL: `http://localhost:8000`
 
@@ -238,9 +236,11 @@ You can test the `POST /chat` endpoint directly from the UI.
 - `GET /health`: Healthcheck verifying ChromaDB, BM25, and local Ollama model connectivity.
 - `POST /chat`: Query endpoint returning answer, sources, and pipeline telemetry.
 
-#### Consumption example via cURL / PowerShell:
-```powershell
-Invoke-RestMethod -Uri "http://localhost:8000/chat" -Method Post -ContentType "application/json" -Body '{"question": "What is Crossplane and how does it relate to Platform Engineering?"}'
+#### Consumption example via cURL:
+```bash
+curl -s -X POST http://localhost:8000/chat \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is Crossplane and how does it relate to Platform Engineering?"}'
 ```
 
 ---

@@ -10,12 +10,12 @@ The entire system was designed and verified to run **100% locally on consumer ha
 
 ### Step 1: Virtual Environment & Dependency Installation
 Using Python 3.11:
-```powershell
+```bash
 # Create isolated environment
 python -m venv .venv
 
-# Activate environment (PowerShell)
-.\.venv\Scripts\Activate.ps1
+# Activate environment
+source .venv/bin/activate
 
 # Install core dependencies (LangChain, ChromaDB, Rank-BM25, PyMuPDF, FastAPI, MCP)
 pip install -r requirements.txt
@@ -30,9 +30,9 @@ ollama run qwen2.5:7b
 
 ### Step 3: Placing Books (BYOB - Bring Your Own Books)
 Copy your legally owned PDF books into `books/`. The system auto-profiles any topic:
-```powershell
+```bash
 # The directory is empty by default
-Get-ChildItem books/
+ls -la books/
 ```
 
 ### Step 4: Enforcing 100% Offline Mode for Hugging Face
@@ -45,8 +45,8 @@ The embedding model (`sentence-transformers/all-MiniLM-L6-v2`) and cross-encoder
 
 ### Step 5: Batched Incremental Ingestion
 When scaling to 22 books (8,516 pages), ChromaDB's Rust backend enforces a maximum batch limit of 5,461 documents per transaction. We resolved this in `src/ingest.py` by partitioning the 19,174 new chunks into batches of 2,000:
-```powershell
-.\.venv\Scripts\python.exe src/ingest.py
+```bash
+python src/ingest.py
 ```
 **Console Output:**
 ```text
@@ -87,8 +87,8 @@ Below are actual, untampered outputs captured directly from terminal runs agains
 *Testing whether the hybrid retriever and cross-encoder isolate deep architecture without semantic dilution.*
 
 #### Command:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
+```bash
+python src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
 ```
 
 #### Generated Output:
@@ -144,8 +144,8 @@ An Admission Controller in Kubernetes is a component that integrates with the AP
 *Demonstrating the 2-step agentic reflection loop: the LLM detects that the book describes "Accelerators and Paved Roads" rather than the exact term "Golden Path", executing a second retrieval step to provide grounded analysis.*
 
 #### Command:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "Explain the Golden Path pattern in Platform Engineering and how it reduces cognitive load"
+```bash
+python src/cli.py "Explain the Golden Path pattern in Platform Engineering and how it reduces cognitive load"
 ```
 
 #### Generated Output:
@@ -198,8 +198,8 @@ The engineering literature describes this paradigm through concepts like "Paved 
 *Demonstrating technical trade-off evaluation comparing parameter adaptation against retrieval.*
 
 #### Command:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "Compare fine-tuning vs RAG for local models"
+```bash
+python src/cli.py "Compare fine-tuning vs RAG for local models"
 ```
 
 #### Key Technical Takeaways Generated:
@@ -252,17 +252,64 @@ spec:
 
 ---
 
-### Use Case 5: Multi-MCP Certification Prep Session
-*Open WebUI orchestrating `study-cybercirujas` and `rag-tutor` in a single session.*
+### Use Case 5: Verified Live Multi-MCP Certification Prep Session
+*Live execution connecting `study-cybercirujas` MCP tools with `rag-tutor` in both Phase 1 (Hybrid) and Phase 2 (GraphRAG).*
 
-1. **User Prompt:**  
-   *"I'm preparing for the CNCF CKA exam on Network Policies. Give me the official exam objective and exercises from Cybercirujas, and explain the deep pod-selector egress rules with the engineering books."*
-2. **Tool 1 (`study-cybercirujas`):**  
-   Calls `get_topic("cka", "4.2", "en")` $\rightarrow$ Fetches the official CNCF objective, exam weighting, and the Docker break-and-fix lab.
-3. **Tool 2 (`rag-tutor`):**  
-   Calls `consultar_libros_manning("Kubernetes NetworkPolicy podSelector egress rules")` $\rightarrow$ Fetches exact architectural explanations and verified YAML manifests from **Core Kubernetes** with exact page numbers.
-4. **Synthesis:**  
-   The user receives a complete study module: official syllabus context, practical break-and-fix lab, and battle-tested book theory.
+#### Terminal Execution:
+```bash
+python test_multi_mcp_live.py
+```
+
+#### Real Live Output:
+```text
+======================================================================
+ 🎓 LIVE MULTI-MCP ORCHESTRATION SESSION (STUDY + RAG-TUTOR)
+======================================================================
+
+[MCP Client] Calling Tool: study-cybercirujas.search_topics('admission controllers')...
+  --> Found Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
+  --> Certification:    Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
+
+[MCP Client] Calling Tool: study-cybercirujas.get_topic('cnpe', '3.4')...
+  --> Official Study Guide Excerpt:
+      # Study Guide: Domain 3.4 — Using Policy Engines and Admission Controllers for Governance
+      **Certification:** CNCF Certified Cloud Native Platform Engineer (CNPE)  
+      **Domain Weight:** 3%  
+      **Target Role:** Principal Platform Architect / Senior SRE  
+      ---
+
+----------------------------------------------------------------------
+[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 1: Hybrid)...
+  Query: 'How do mutating and validating admission webhooks enforce platform governance?'
+
+--- Phase 1 Grounded Answer Preview ---
+Mutating and validating admission webhooks are key components in enforcing platform governance by ensuring that certain policies and requirements are met before resources are deployed to the Kubernetes cluster. Let's break down how these webhooks work and their roles in governance.
+
+### Validating Admission Webhooks
+According to the context from "Effective_Platform_Engineering.pdf" (Page 121), validating admission webhooks are used to perform tasks before deployment. These webhooks are part of the admission controller, which allows for the creation of validating webhooks that can execute any desired task prior to deployment. This decouples governance requirements from the development process, ensuring that compliance and security standards are met without overly controlling the development workflow.
+
+In the context of "Core_Kubernetes.pdf" (Page 286), validating admission webhooks are described as components that can validate the API objects being created in the cluster. They can either validate, mutate, or both the objects. From a security standpoint, this provides significant control and auditing capabilities. The Kubernetes API server uses the `--authorization-mode=RBAC` flag to enable role-based access control (RBAC), which is essential for managing permissions and ensuring that only authorized entities can perform actions.
+...
+Sources cited: ['Effective_Platform_Engineering.pdf (Page 143)', 'GitOps_and_Kubernetes.pdf (Page 212)', 'Effective_Platform_Engineering.pdf (Page 121)', 'Core_Kubernetes.pdf (Page 286)']
+
+----------------------------------------------------------------------
+[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 2: GraphRAG)...
+  Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'
+
+--- Phase 2 Graph-Grounded Answer Preview ---
+The Internal Developer Platform (IDP) and admission controllers are integral components in the architecture of a platform designed to support self-service and compliance. The relationship between the IDP and admission controllers can be understood through the concept of "paved roads" (also known as "golden paths"), which are well-defined, easy-to-follow paths that guide developers to make decisions that align with the organization's policies and standards.
+
+### Relationship Between IDP and Admission Controllers
+1. Paved Roads (Golden Paths) and IDP:
+   - Paved Roads: Standardized, preconfigured paths guiding developers toward organizational compliance.
+   - IDP's Role: Enforces paved roads via templates and automated CI/CD pipelines (LaunchPad).
+...
+Sources cited: ['Effective_Platform_Engineering.pdf (Page 143)', 'Effective_Platform_Engineering.pdf (Page 35)', 'Effective_Platform_Engineering.pdf (Page 363)', 'Effective_Platform_Engineering.pdf (Page 381)']
+
+======================================================================
+ 🎉 Session Complete: Both MCPs and Both RAG Phases Verified Live!
+======================================================================
+```
 
 ---
 
@@ -283,8 +330,8 @@ This section demonstrates how the engine responds in each operational mode when 
 ### Case A: Phase 1 Output (Hybrid ChromaDB + BM25 + Cross-Encoder)
 
 #### Command:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
+```bash
+python src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
 ```
 
 #### Terminal Output:
@@ -343,8 +390,8 @@ In summary, an IDP is a self-service platform that simplifies and automates the 
 In Phase 2, the engine detects entities from the ontology (`internal-developer-platform` and `self-service`), traverses `knowledge_graph.json`, extracts the ontological edge `(Internal Developer Platform (IDP)) ──[ENABLES]──► (Self-Service)`, applies a score bonus to topologically connected chunks, and injects the relational topology into the LLM context.
 
 #### Command:
-```powershell
-$env:RETRIEVER_TYPE="omnigraph"; .\.venv\Scripts\python.exe src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
+```bash
+RETRIEVER_TYPE="omnigraph" python src/cli.py "What is an Internal Developer Platform (IDP) and how does it relate to Self-Service?"
 ```
 
 #### Terminal Output:

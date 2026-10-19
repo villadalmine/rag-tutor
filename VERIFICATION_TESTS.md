@@ -8,9 +8,9 @@ It provides the complete, untampered execution trace, retrieved page citations, 
 
 ## 1. Test Environment Specification
 
-- **Date & OS:** October 2026 | Windows 11 / PowerShell 7
+- **Date & Platform:** October 2026 | Linux / POSIX (x86_64)
 - **Hardware:** Local multi-core CPU, 100% offline
-- **Runtime:** Python 3.11.16 in `.venv`
+- **Runtime:** Python 3.11 in `.venv`
 - **LLM Service:** Local Ollama daemon at `http://localhost:11434`
 - **Generative Model:** `qwen2.5:7b`
 - **Embedding Model:** `sentence-transformers/all-MiniLM-L6-v2`
@@ -23,8 +23,8 @@ It provides the complete, untampered execution trace, retrieved page citations, 
 ## 2. Integration Test Execution
 
 ### Terminal Command:
-```powershell
-.\.venv\Scripts\python.exe src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
+```bash
+python src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
 ```
 
 ### Literal Console Output (Unfiltered):
@@ -102,7 +102,7 @@ An Admission Controller in Kubernetes is a piece of code that intercepts request
    ollama run qwen2.5:7b
    ```
 3. Run the verification query:
-   ```powershell
-   .\.venv\Scripts\python.exe src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
+   ```bash
+   python src/cli.py "Explain what an Admission Controller is in Kubernetes and how it validates resources"
    ```
 4. Verify that the retrieved citations and model telemetry match the parameters documented above.

@@ -73,7 +73,7 @@ Here is what happens when you drop in books across diverse disciplines:
      - `has_code = true`
      - `code_lang = "sql"`
 3. **Querying It:**
-   ```powershell
+   ```bash
    # Scoped exclusively to storage and database engines
    python src/cli.py "Explain Serializable vs Snapshot isolation" --domain databases_and_storage
    
@@ -95,7 +95,7 @@ Here is what happens when you drop in books across diverse disciplines:
      - `has_code = true`
      - `code_lang = "typescript"`
 3. **Querying It:**
-   ```powershell
+   ```bash
    python src/cli.py "Explain useEffect vs useLayoutEffect execution order" --code typescript
    ```
 
@@ -113,7 +113,7 @@ Here is what happens when you drop in books across diverse disciplines:
      - `has_code = true`
      - `code_lang = "rust"`
 3. **Querying It:**
-   ```powershell
+   ```bash
    python src/cli.py "How to implement a thread pool with mpsc channels" --domain systems_programming --code rust
    ```
 
@@ -131,7 +131,7 @@ Here is what happens when you drop in books across diverse disciplines:
      - `has_code = true`
      - `code_lang = "bash"` or `"json"`
 3. **Querying It:**
-   ```powershell
+   ```bash
    python src/cli.py "Explain Broken Object Level Authorization (BOLA) risks" --domain devsecops_and_security
    ```
 
