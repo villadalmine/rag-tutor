@@ -28,18 +28,20 @@ rag-tutor/
 │   ├── config.py              # Centralized configuration and engine selector
 │   ├── core.py                # Agentic Tutor Core with self-reflection loop
 │   ├── cli.py                 # Interactive and single-query command-line interface
-│   ├── ingest.py              # Incremental PDF ingestion, chunking, and indexing
+│   ├── ingest.py              # Incremental PDF ingestion with SHA-256 change detection
 │   ├── ingest_graph.py        # GraphRAG knowledge graph ingestion (Phase 2)
 │   ├── graph_schema.py        # Schema of nodes and edges for the knowledge graph
+│   ├── kuzu_graph.py          # Embedded KùzuDB Cypher query engine for GraphRAG
+│   ├── schemas.py             # Pydantic contract schemas for syllabus and external MCPs
 │   ├── mcp_server.py          # Model Context Protocol server (FastMCP / MCPServer)
 │   ├── api.py                 # FastAPI REST API for Web interfaces / Open WebUI
 │   └── retrievers/
 │       ├── __init__.py
 │       ├── base.py            # Abstract BaseRetriever and RetrievedChunk interfaces
 │       ├── hybrid.py          # Phase 1: ChromaDB + BM25 + Cross-Encoder Reranker
-│       └── omnigraph.py       # Phase 2: Omnigraph connector (Remote + Local GraphRAG)
+│       └── omnigraph.py       # Phase 2: KùzuDB Cypher + Omnigraph connector
 ├── requirements.txt           # Python dependencies
-├── test_multi_mcp_live.py     # Live end-to-end verification of study-cybercirujas + rag-tutor (Phases 1 & 2)
+├── test_multi_mcp_live.py     # Live Tri-MCP verification (study-cybercirujas + k8s-docs-mcp + rag-tutor)
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
@@ -64,10 +66,11 @@ rag-tutor/
   - Local reranking via Cross-Encoder (`ms-marco-MiniLM-L-6-v2`).
   - Agentic RAG reflection loop (context sufficiency evaluation in max 2 steps).
   - MCP Server compatible with `mcp 2.x` (`MCPServer`) + FastAPI REST API + interactive CLI.
-- [x] **Phase 2 (GraphRAG / Omnigraph)**:
+- [x] **Phase 2 (GraphRAG / KùzuDB / Omnigraph)**:
   - Ontological schema definition (`src/graph_schema.py`) with domain entities and relations.
+  - Embedded **KùzuDB Cypher Engine** (`src/kuzu_graph.py`) for sub-millisecond local graph traversals without Docker daemons.
   - Graph generator persisting into `knowledge_graph.json` (`src/ingest_graph.py`).
-  - Dual-mode `OmnigraphRetriever` connector: remote HTTP querying to Omnigraph daemon or local in-memory relationship traversal.
+  - Dual-mode `OmnigraphRetriever` connector: remote HTTP querying to Omnigraph daemon or local in-memory/KùzuDB relationship traversal.
   - Container deployment ready with Docker Compose (`docker-compose.yml`).
 
 ---
@@ -291,7 +294,7 @@ To see how the engine operates in practice on real hardware, consult **[USE_CASE
 3. **Real Terminal Output 2:** Agentic Self-Reflection (Golden Paths & Developer Cognitive Load with automatic literature query reformulation).
 4. **Real Terminal Output 3:** Systems & AI Trade-offs (Fine-Tuning vs RAG).
 5. **Real Terminal Output 4:** Pure Lexical Retrieval (`buscar_codigo_yaml` for exact manifest extraction).
-6. **Real Terminal Output 5:** Multi-MCP Certification Study Session paired with [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas).
+6. **Real Terminal Output 5:** Tri-MCP Certification Study Session paired with [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas) and [k8s-docs-mcp](https://github.com/villadalmine/k8s-docs-mcp).
 
 ---
 

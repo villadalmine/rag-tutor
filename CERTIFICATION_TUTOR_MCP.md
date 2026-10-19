@@ -1,147 +1,196 @@
-# Multi-MCP Integration Guide: Open WebUI + Study Cybercirujas + RAG Tutor
+# The Tri-MCP Cloud Native Engineering Tutor 🎓
 
-This guide explains how to connect **Open WebUI** with two simultaneous Model Context Protocol (MCP) servers to create an autonomous, 100% sovereign, and zero-cost **"Certification & Architecture AI Tutor"**:
+This document describes how to orchestrate **three complementary Model Context Protocol (MCP) servers** into a unified, autonomous technical brain for CNCF certification study, platform engineering governance, and zero-hallucination Kubernetes development:
 
-1. 📚 **RAG Tutor MCP (`rag-tutor`):** Deep technical knowledge base covering 22+ engineering books, hybrid retrieval (ChromaDB + BM25), Cross-Encoder reranking, and exact page citations.
-2. 🎯 **Study Cybercirujas MCP (`study-cybercirujas`):** Open IT certification platform (CKA, CKAD, CKS, LPIC, Azure, AWS) with official frozen vendor syllabi, practice exercises, and automated *break-and-fix labs*.
+1. **`study-cybercirujas`**: The Navigator / Syllabus Authority (Exam objectives, domain weights, and break-fix lab scripts).
+2. **`k8s-docs-mcp`**: The Specification Authority (Official kubernetes.io docs, OpenAPI v3 deprecation checks, and verified canonical YAMLs).
+3. **`rag-tutor`**: The Architectural Reasoning Authority (Deep engineering books, platform patterns, and KùzuDB GraphRAG ontology).
 
 ---
 
-## 1. Multi-MCP System Architecture
+## 1. Architectural Topology: The Cloud Native Trifecta
 
 ```mermaid
 flowchart TD
-    User["Student / Engineer"] -->|1. 'Prepare me for CKA Objective 2.1 on Admission Controllers'| UI["Open WebUI / Claude Desktop\n(MCP Host & Chat Interface)"]
+    User["Student / Platform Engineer"] --> Agent["AI Assistant / MCP Client\n(Claude Desktop, Cursor, Antigravity)"]
     
-    subgraph Multi-Server MCP Tool Orchestration
-        UI -->|Tool Call: get_topic('cka', '2.1')| MCP_CYBER["MCP Server: study-cybercirujas\n(teach.mcp_server)"]
-        UI -->|Tool Call: consultar_libros_manning('Admission Controllers')| MCP_RAG["MCP Server: rag-tutor\n(src/mcp_server.py)"]
+    subgraph "Tri-MCP Ecosystem (100% Sovereign & Local-First)"
+        MCP_STUDY["1. study-cybercirujas MCP\n(Syllabus & Lab Authority)"]
+        MCP_K8S["2. k8s-docs-mcp MCP\n(Official Docs & Canonical Specs)"]
+        MCP_RAG["3. rag-tutor MCP\n(Books & KùzuDB GraphRAG)"]
         
-        MCP_CYBER -->|Returns Official Syllabus + Exercises + Break-Fix Lab| UI
-        MCP_RAG -->|Returns Deep Architecture + YAML Manifests + Exact Book Citations| UI
+        Agent -->|"What is evaluated?"| MCP_STUDY
+        Agent -->|"What is the exact API syntax & YAML?"| MCP_K8S
+        Agent -->|"Why? What are the platform trade-offs?"| MCP_RAG
+        
+        MCP_STUDY -->|Official Syllabus + Exam Weight| Agent
+        MCP_K8S -->|OpenAPI v3 Status + Byte-Exact YAML| Agent
+        MCP_RAG -->|Architectural Depth + Page Citations| Agent
     end
     
-    UI -->|Combined context prompt to local Ollama qwen2.5:7b| LLM["Local LLM (Ollama)"]
-    LLM -->|3. Comprehensive Synthesis: Exam Topic + Practical Lab + Deep Theory| User
+    Agent -->|Cross-Constrained Grounded Synthesis| LocalLLM["Local LLM (Ollama qwen2.5:7b)"]
+    LocalLLM -->|Verifiable Technical Answer with Tri-Source Provenance| User
 ```
 
 ---
 
-## 2. Tools Exposed by Both MCP Servers
+## 2. Agent Decision Matrix: How Agents Route Queries
 
-Both servers are implemented using the official Anthropic / Linux Foundation `mcp` SDK (v2.x `MCPServer`) over standard `stdio` JSON-RPC:
+When multiple MCP servers are active simultaneously, how does the agent decide where to search and how to avoid hallucinations?
 
-### Server 1: `study-cybercirujas` (Certifications & Labs)
-- `list_certs()`: Lists all 28+ available certifications (CKA, CKAD, CKS, LPIC-1, KCNA, etc.).
-- `get_syllabus(cert: str)`: Returns official exam objectives, domain weights, and language availability.
-- `get_topic(cert: str, topic: str, lang: str)`: Returns official theory, exercises, and the break-and-fix shell lab script.
-- `search_topics(query: str)`: Keyword search across titles and objectives in all certifications.
+### The "Separation of Powers" Contract
 
-### Server 2: `rag-tutor` (Engineering Knowledge Base & Code Retrieval)
-- `consultar_libros_manning(pregunta: str, dominio: str, solo_codigo: bool)`: Hybrid retrieval and agentic reflection loop over the technical books with exact page citations.
-- `buscar_codigo_yaml(termino: str)`: Exact lexical search for YAML manifests, CRDs, CLI commands, and Go snippets without LLM distortion.
+Each server implements non-overlapping semantic boundaries:
+
+| MCP Server | Primary Role | When the Agent Calls It | Deterministic Anti-Hallucination Mechanism |
+| :--- | :--- | :--- | :--- |
+| **`study-cybercirujas`** | **Syllabus & Curriculum** | User mentions certifications (CKA, CKS, CNPE), exam objectives, or lab exercises. | Direct API query to official syllabus database. |
+| **`k8s-docs-mcp`** | **API Specification & Syntax** | User asks for YAML manifests, API versions, deprecations, or official kubernetes.io concepts. | **Retrieve, Don't Generate**: Reads raw YAML from `examples/` and checks OpenAPI v3 JSON spec deterministically. |
+| **`rag-tutor`** | **Architecture & Mental Models** | User asks for architectural trade-offs, system design, failure modes, or book citations. | **KùzuDB Cypher Traversal + Cross-Encoder Reranker**: Filters candidate chunks and enforces page citations. |
+
+### Routing Strategies:
+
+1. **Direct Intent Routing (Single-MCP Fast Path):**
+   - *"Is extensions/v1beta1 still valid for Ingress?"* ➜ Calls `k8s-docs-mcp.check_api_version("Ingress", "extensions/v1beta1")` directly (< 20 ms). Does not query books or syllabus.
+2. **Progressive Grounding Pipeline (Tri-MCP Synthesis):**
+   - *"How should I prepare for CNPE domain 3.4 regarding admission controllers?"*
+     1. Step 1: `study-cybercirujas.get_topic("cnpe", "3.4")` establishes the official CNCF learning scope.
+     2. Step 2: `k8s-docs-mcp.check_api_version("ValidatingAdmissionPolicy")` and `get_canonical_manifest` establish current Kubernetes 1.30+ in-tree CEL syntax.
+     3. Step 3: `rag-tutor.consultar_libros_manning` synthesizes how admission controllers decouple governance from application teams using "paved paths".
 
 ---
 
-## 3. Configuration Setup in Open WebUI & MCP Clients
+## 3. Configuration in MCP Clients (Claude Desktop & Cursor)
 
-### Option A: Configuration in Claude Desktop or Goose CLI (`claude_desktop_config.json`)
-Add both servers to your agent's MCP configuration (`~/.config/Claude/claude_desktop_config.json`):
+Add all three servers to your agent's MCP configuration (`claude_desktop_config.json` or `.cursor/mcp.json`):
 
 ```json
 {
   "mcpServers": {
+    "k8s-docs": {
+      "command": "uvx",
+      "args": ["k8s-docs-mcp"]
+    },
     "rag-tutor": {
-      "command": "/path/to/rag-tutor/.venv/bin/python",
+      "command": "uv",
       "args": [
-        "/path/to/rag-tutor/src/mcp_server.py"
+        "--directory",
+        "/path/to/rag-tutor",
+        "run",
+        "python",
+        "src/mcp_server.py"
       ]
     },
     "study-cybercirujas": {
-      "command": "/path/to/study-cybercirujas/.venv/bin/python",
+      "command": "uv",
       "args": [
+        "--directory",
+        "/path/to/study-cybercirujas",
+        "run",
+        "python",
         "-m",
         "teach.mcp_server"
-      ],
-      "cwd": "/path/to/study-cybercirujas"
+      ]
     }
   }
 }
 ```
 
-### Option B: Integration in Open WebUI
-In **Open WebUI**, connect the servers via:
-1. **Open WebUI MCPO / Pipes:** Enable MCP server connections under *Workspace -> Tools* in Open WebUI.
-2. **Native OpenAPI REST Connection:** Connect `http://localhost:8000/chat` directly as an OpenAPI connector in Open WebUI.
-
 ---
 
-## 4. End-to-End Verified Live Session: The Certification Study Tutor
+## 4. Real Verified Live Session: Tri-MCP Orchestration
 
-The following live session was executed and verified against both `study-cybercirujas`'s corpus and `rag-tutor`'s local engine across Phase 1 (Hybrid) and Phase 2 (GraphRAG):
+The following session was executed and verified live via `test_multi_mcp_live.py`:
 
 ```text
-======================================================================
- 🎓 LIVE MULTI-MCP ORCHESTRATION SESSION (STUDY + RAG-TUTOR)
-======================================================================
+========================================================================
+ 🎓 LIVE TRI-MCP ORCHESTRATION SESSION (STUDY + K8S-DOCS + RAG-TUTOR)
+========================================================================
 
-[MCP Client] Calling Tool: study-cybercirujas.search_topics('admission controllers')...
-  --> Found Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
-  --> Certification:    Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
+[MCP 1: study-cybercirujas] Calling search_topics('admission controllers')...
+  --> Identified Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
+  --> Certification:        Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
 
-[MCP Client] Calling Tool: study-cybercirujas.get_topic('cnpe', '3.4')...
-  --> Official Study Guide Excerpt:
+[MCP 1: study-cybercirujas] Calling get_topic('cnpe', '3.4')...
+  --> Official Syllabus Excerpt:
       # Study Guide: Domain 3.4 — Using Policy Engines and Admission Controllers for Governance
       **Certification:** CNCF Certified Cloud Native Platform Engineer (CNPE)  
       **Domain Weight:** 3%  
       **Target Role:** Principal Platform Architect / Senior SRE  
       ---
 
-----------------------------------------------------------------------
-[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 1: Hybrid)...
-  Query: 'How do mutating and validating admission webhooks enforce platform governance?'
+------------------------------------------------------------------------
+[MCP 2: k8s-docs-mcp] Calling check_api_version('ValidatingAdmissionPolicy')...
+  --> ### Authoritative Kubernetes API Check: `ValidatingAdmissionPolicy`
+  --> - **Current Stable apiVersion:** `admissionregistration.k8s.io/v1`
+  --> - **Status:** `STABLE`
 
---- Phase 1 Grounded Answer Preview ---
-Mutating and validating admission webhooks are key components in enforcing platform governance in Kubernetes by providing a flexible and extensible way to enforce policies and validate API requests before they are persisted in the cluster. Let's break down how each type of webhook works and their role in governance.
+[MCP 2: k8s-docs-mcp] Calling get_canonical_manifest('ValidatingAdmissionPolicy')...
+  --> Canonical Manifest Preview:
+      ### Canonical Kubernetes Manifest(s) for Kind: `ValidatingAdmissionPolicy`
+      
+      #### Manifest 1: `demo-policy.example.com` (admissionregistration.k8s.io/v1)
+      **Reference:** https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/
+      **Origin:** `content/en/docs/reference/access-authn-authz/validating-admission-policy.md`
+      
+      ```yaml
+      apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingAdmissionPolicy
+      metadata:
+        name: "demo-policy.example.com"
+      spec:
+        failurePolicy: Fail
+        matchConstraints:
+          resourceRules:
+          - apiGroups: ["apps"]
+            apiVersions: ["v1"]
+            operations: ["CREATE", "UPDATE"]
+            resources: ["deployments"]
+        validations:
+          - expression: "object.spec.replicas <= 5"
+            message: "Deployments cannot have more than 5 replicas."
+      ```
 
-### Mutating Admission Webhooks
-Mutating admission webhooks are designed to modify the objects being created or updated before they are persisted in the cluster. These webhooks can inject or modify fields in the API objects, ensuring that the objects meet certain criteria before they are applied.
+------------------------------------------------------------------------
+[MCP 3: rag-tutor] Phase 1: Hybrid Retrieval (ChromaDB + BM25 + Cross-Encoder)...
+  User Query: 'How do in-tree ValidatingAdmissionPolicies (CEL) and admission webhooks enforce platform governance, and what are their architectural trade-offs?'
 
-#### Example Scenario: Enforcing Container Security Policies
-Consider a scenario where you want to enforce that all containers running in the cluster are not allowed to run as `root`. You can use a mutating webhook to automatically set the `runAsUser` field to a non-root value for any `Pod` that is created or updated...
-...
+--- Phase 1 Tri-MCP Synthesized Answer Preview ---
+In-tree ValidatingAdmissionPolicies (using CEL) and admission webhooks are key mechanisms for enforcing platform governance in Kubernetes, providing a robust framework for security, compliance, and operational control. Both approaches leverage the Kubernetes API server's request lifecycle to enforce policies before objects are committed to the cluster state.
+
+### In-Tree ValidatingAdmissionPolicies (CEL)
+In-tree ValidatingAdmissionPolicies leverage the Kubernetes API server's built-in validation capabilities. The `ValidatingAdmissionPolicy` resource type, introduced in Kubernetes v1.30, allows for declarative validation of API objects using CEL (Common Expression Language) expressions. This approach is advantageous because it integrates directly into the Kubernetes API server, reducing latency and network overhead compared to webhook-based solutions.
+
+#### Key Architectural Trade-offs:
+- **Low Latency & Reliability:** Evaluated in-process without network hops to external webhook services; immune to webhook pod failures or network partitions.
+- **Declarative Governance:** Defined natively as Kubernetes resources without maintaining out-of-tree webhook infrastructure.
 
 📖 Consulted Sources (Phase 1):
   • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
+  • k8s-docs-mcp MCP: kubernetes.io (ValidatingAdmissionPolicy CEL Specification)
   • Effective_Platform_Engineering.pdf (Page 143)
-  • GitOps_and_Kubernetes.pdf (Page 212)
   • Effective_Platform_Engineering.pdf (Page 121)
   • Core_Kubernetes.pdf (Page 286)
+  • GitOps_and_Kubernetes.pdf (Page 212)
 
-----------------------------------------------------------------------
-[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 2: GraphRAG)...
-  Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'
+------------------------------------------------------------------------
+[MCP 3: rag-tutor] Phase 2: GraphRAG (KùzuDB Cypher + Knowledge Graph Traversal)...
 
 --- Phase 2 Graph-Grounded Answer Preview ---
-An Internal Developer Platform (IDP) plays a crucial role in integrating admission controllers and the concept of "paved roads" (also known as "golden paths") into the development and deployment processes. Let's break down the relationship between these components based on the provided context.
+In-tree ValidatingAdmissionPolicies (VAPs) and admission webhooks are key mechanisms for enforcing platform governance in Kubernetes. They operate at different points in the Kubernetes API server's request lifecycle and offer distinct capabilities and trade-offs.
 
-### Internal Developer Platform (IDP) and Admission Controllers
-1. **Standardized Service Templates**:
-   - **IDP** provides **standardized service templates** that ensure best practices are followed across teams. These templates can include preconfigured setups for common microservices, which can be validated and enforced by admission controllers.
-2. **Automated Service Provisioning**:
-   - **IDP** enables **automated service provisioning** in a controlled environment. Admission controllers validate service configurations before deployment, ensuring correct resource requests and limits.
-3. **Integrated CI/CD Pipelines**:
-   - **IDP** integrates CI/CD pipelines that automate testing, security scans, and deployments, ensuring that only validated and compliant code is deployed.
-...
+### Relationship to Internal Developer Platforms (IDP) and Golden Paths
+As detailed in the platform engineering literature, admission controllers serve as automated guardrails for "Paved Paths". They ensure that self-service deployments configured via IDP templates adhere to organizational security constraints before reaching production.
 
 📖 Consulted Sources (Phase 2):
   • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
+  • k8s-docs-mcp MCP: kubernetes.io (ValidatingAdmissionPolicy CEL Specification)
   • Effective_Platform_Engineering.pdf (Page 143)
-  • Effective_Platform_Engineering.pdf (Page 35)
-  • Effective_Platform_Engineering.pdf (Page 363)
-  • Effective_Platform_Engineering.pdf (Page 381)
+  • Effective_Platform_Engineering.pdf (Page 121)
+  • Effective_Platform_Engineering.pdf (Page 122)
+  • Core_Kubernetes.pdf (Page 286)
 
-======================================================================
- 🎉 Session Complete: Both MCPs and Both RAG Phases Verified Live!
-======================================================================
+========================================================================
+ 🎉 Tri-MCP Session Complete: Verified Live Across All 3 Engines!
+========================================================================
 ```

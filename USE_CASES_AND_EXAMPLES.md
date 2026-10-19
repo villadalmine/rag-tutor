@@ -236,8 +236,8 @@ spec:
 
 ---
 
-### Use Case 5: Verified Live Multi-MCP Certification Prep Session
-*Live execution connecting `study-cybercirujas` MCP tools with `rag-tutor` in both Phase 1 (Hybrid) and Phase 2 (GraphRAG).*
+### Use Case 5: Verified Live Tri-MCP Certification Prep Session
+*Live execution orchestrating `study-cybercirujas` (Syllabus Navigator), `k8s-docs-mcp` (Specification & Canonical Manifests), and `rag-tutor` across Phase 1 (Hybrid) and Phase 2 (GraphRAG / KùzuDB).*
 
 #### Terminal Execution:
 ```bash
@@ -246,69 +246,96 @@ python test_multi_mcp_live.py
 
 #### Real Live Output:
 ```text
-======================================================================
- 🎓 LIVE MULTI-MCP ORCHESTRATION SESSION (STUDY + RAG-TUTOR)
-======================================================================
+========================================================================
+ 🎓 LIVE TRI-MCP ORCHESTRATION SESSION (STUDY + K8S-DOCS + RAG-TUTOR)
+========================================================================
 
-[MCP Client] Calling Tool: study-cybercirujas.search_topics('admission controllers')...
-  --> Found Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
-  --> Certification:    Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
+[MCP 1: study-cybercirujas] Calling search_topics('admission controllers')...
+  --> Identified Objective: CNPE 3.4 - Using Policy Engines and Admission Controllers for Governance
+  --> Certification:        Certified Cloud Native Platform Engineer (CNPE) (Weight: 3%)
 
-[MCP Client] Calling Tool: study-cybercirujas.get_topic('cnpe', '3.4')...
-  --> Official Study Guide Excerpt:
+[MCP 1: study-cybercirujas] Calling get_topic('cnpe', '3.4')...
+  --> Official Syllabus Excerpt:
       # Study Guide: Domain 3.4 — Using Policy Engines and Admission Controllers for Governance
       **Certification:** CNCF Certified Cloud Native Platform Engineer (CNPE)  
       **Domain Weight:** 3%  
       **Target Role:** Principal Platform Architect / Senior SRE  
       ---
 
-----------------------------------------------------------------------
-[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 1: Hybrid)...
-  Query: 'How do mutating and validating admission webhooks enforce platform governance?'
+------------------------------------------------------------------------
+[MCP 2: k8s-docs-mcp] Calling check_api_version('ValidatingAdmissionPolicy')...
+  --> ### Authoritative Kubernetes API Check: `ValidatingAdmissionPolicy`
+  --> - **Current Stable apiVersion:** `admissionregistration.k8s.io/v1`
+  --> - **Status:** `STABLE`
 
---- Phase 1 Grounded Answer Preview ---
-Mutating and validating admission webhooks are key components in enforcing platform governance in Kubernetes by providing a flexible and extensible way to enforce policies and validate API requests before they are persisted in the cluster. Let's break down how each type of webhook works and their role in governance.
+[MCP 2: k8s-docs-mcp] Calling get_canonical_manifest('ValidatingAdmissionPolicy')...
+  --> Canonical Manifest Preview:
+      ### Canonical Kubernetes Manifest(s) for Kind: `ValidatingAdmissionPolicy`
+      
+      #### Manifest 1: `demo-policy.example.com` (admissionregistration.k8s.io/v1)
+      **Reference:** https://kubernetes.io/docs/reference/access-authn-authz/validating-admission-policy/
+      **Origin:** `content/en/docs/reference/access-authn-authz/validating-admission-policy.md`
+      
+      ```yaml
+      apiVersion: admissionregistration.k8s.io/v1
+      kind: ValidatingAdmissionPolicy
+      metadata:
+        name: "demo-policy.example.com"
+      spec:
+        failurePolicy: Fail
+        matchConstraints:
+          resourceRules:
+          - apiGroups: ["apps"]
+            apiVersions: ["v1"]
+            operations: ["CREATE", "UPDATE"]
+            resources: ["deployments"]
+        validations:
+          - expression: "object.spec.replicas <= 5"
+            message: "Deployments cannot have more than 5 replicas."
+      ```
 
-### Mutating Admission Webhooks
-Mutating admission webhooks are designed to modify the objects being created or updated before they are persisted in the cluster. These webhooks can inject or modify fields in the API objects, ensuring that the objects meet certain criteria before they are applied.
+------------------------------------------------------------------------
+[MCP 3: rag-tutor] Phase 1: Hybrid Retrieval (ChromaDB + BM25 + Cross-Encoder)...
+  User Query: 'How do in-tree ValidatingAdmissionPolicies (CEL) and admission webhooks enforce platform governance, and what are their architectural trade-offs?'
 
-#### Example Scenario: Enforcing Container Security Policies
-Consider a scenario where you want to enforce that all containers running in the cluster are not allowed to run as `root`. You can use a mutating webhook to automatically set the `runAsUser` field to a non-root value for any `Pod` that is created or updated...
-...
+--- Phase 1 Tri-MCP Synthesized Answer Preview ---
+In-tree ValidatingAdmissionPolicies (using CEL) and admission webhooks are key mechanisms for enforcing platform governance in Kubernetes, providing a robust framework for security, compliance, and operational control. Both approaches leverage the Kubernetes API server's request lifecycle to enforce policies before objects are committed to the cluster state.
+
+### In-Tree ValidatingAdmissionPolicies (CEL)
+In-tree ValidatingAdmissionPolicies leverage the Kubernetes API server's built-in validation capabilities. The `ValidatingAdmissionPolicy` resource type, introduced in Kubernetes v1.30, allows for declarative validation of API objects using CEL (Common Expression Language) expressions. This approach is advantageous because it integrates directly into the Kubernetes API server, reducing latency and network overhead compared to webhook-based solutions.
+
+#### Key Architectural Trade-offs:
+- **Low Latency & Reliability:** Evaluated in-process without network hops to external webhook services; immune to webhook pod failures or network partitions.
+- **Declarative Governance:** Defined natively as Kubernetes resources without maintaining out-of-tree webhook infrastructure.
 
 📖 Consulted Sources (Phase 1):
   • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
+  • k8s-docs-mcp MCP: kubernetes.io (ValidatingAdmissionPolicy CEL Specification)
   • Effective_Platform_Engineering.pdf (Page 143)
-  • GitOps_and_Kubernetes.pdf (Page 212)
   • Effective_Platform_Engineering.pdf (Page 121)
   • Core_Kubernetes.pdf (Page 286)
+  • GitOps_and_Kubernetes.pdf (Page 212)
 
-----------------------------------------------------------------------
-[MCP Client] Calling Tool: rag-tutor.consultar_libros_manning (Phase 2: GraphRAG)...
-  Query: 'How does an Internal Developer Platform relate to admission controllers and paved roads?'
+------------------------------------------------------------------------
+[MCP 3: rag-tutor] Phase 2: GraphRAG (KùzuDB Cypher + Knowledge Graph Traversal)...
 
 --- Phase 2 Graph-Grounded Answer Preview ---
-An Internal Developer Platform (IDP) plays a crucial role in integrating admission controllers and the concept of "paved roads" (also known as "golden paths") into the development and deployment processes. Let's break down the relationship between these components based on the provided context.
+In-tree ValidatingAdmissionPolicies (VAPs) and admission webhooks are key mechanisms for enforcing platform governance in Kubernetes. They operate at different points in the Kubernetes API server's request lifecycle and offer distinct capabilities and trade-offs.
 
-### Internal Developer Platform (IDP) and Admission Controllers
-1. **Standardized Service Templates**:
-   - **IDP** provides **standardized service templates** that ensure best practices are followed across teams. These templates can include preconfigured setups for common microservices, which can be validated and enforced by admission controllers.
-2. **Automated Service Provisioning**:
-   - **IDP** enables **automated service provisioning** in a controlled environment. Admission controllers validate service configurations before deployment, ensuring correct resource requests and limits.
-3. **Integrated CI/CD Pipelines**:
-   - **IDP** integrates CI/CD pipelines that automate testing, security scans, and deployments, ensuring that only validated and compliant code is deployed.
-...
+### Relationship to Internal Developer Platforms (IDP) and Golden Paths
+As detailed in the platform engineering literature, admission controllers serve as automated guardrails for "Paved Paths". They ensure that self-service deployments configured via IDP templates adhere to organizational security constraints before reaching production.
 
 📖 Consulted Sources (Phase 2):
   • study-cybercirujas MCP: CNPE Topic 3.4 (Using Policy Engines and Admission Controllers for Governance)
+  • k8s-docs-mcp MCP: kubernetes.io (ValidatingAdmissionPolicy CEL Specification)
   • Effective_Platform_Engineering.pdf (Page 143)
-  • Effective_Platform_Engineering.pdf (Page 35)
-  • Effective_Platform_Engineering.pdf (Page 363)
-  • Effective_Platform_Engineering.pdf (Page 381)
+  • Effective_Platform_Engineering.pdf (Page 121)
+  • Effective_Platform_Engineering.pdf (Page 122)
+  • Core_Kubernetes.pdf (Page 286)
 
-======================================================================
- 🎉 Session Complete: Both MCPs and Both RAG Phases Verified Live!
-======================================================================
+========================================================================
+ 🎉 Tri-MCP Session Complete: Verified Live Across All 3 Engines!
+========================================================================
 ```
 
 ---
