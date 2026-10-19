@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Entornos virtuales
+venv/
+.venv/
+
+# Datos del RAG y modelos locales
+chroma_db/
+bm25_index.pkl
+*.lance/
+
+# Libros (para no versionar PDFs pesados con derechos de autor)
+books/*.pdf
+!books/.gitkeep
+
+# IDEs y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.bak
