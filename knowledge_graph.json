@@ -1,0 +1,246 @@
+{
+  "nodes": [
+    {
+      "id": "platform-engineering",
+      "label": "Discipline",
+      "name": "Platform Engineering",
+      "description": "Disciplina de diseñar y construir toolchains y flujos de trabajo que habilitan el autoservicio para desarrolladores.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "internal-developer-platform",
+      "label": "System",
+      "name": "Internal Developer Platform (IDP)",
+      "description": "Capa unificada de herramientas e infraestructura que reduce la carga cognitiva de los equipos de ingeniería.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "paved-roads",
+      "label": "Pattern",
+      "name": "Paved Roads (Golden Paths)",
+      "description": "Caminos dorados y plantillas estandarizadas recomendadas para acelerar el desarrollo con seguridad integrada.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "self-service",
+      "label": "Principle",
+      "name": "Self-Service",
+      "description": "Autonomía de los equipos para aprovisionar y operar servicios sin tickets manuales entre áreas.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "platform-as-a-product",
+      "label": "Principle",
+      "name": "Platform as a Product",
+      "description": "Gestionar la plataforma como un producto con usuarios internos, métricas de adopción y feedback continuo.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "domain-driven-design",
+      "label": "Methodology",
+      "name": "Domain-Driven Design (DDD)",
+      "description": "Alineación del diseño de plataformas con los límites de contexto y dominios del negocio.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "ai-agent",
+      "label": "Architecture",
+      "name": "AI Agent",
+      "description": "Entidad autónoma basada en LLM capaz de razonar, planificar y utilizar herramientas externas.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "react-pattern",
+      "label": "Pattern",
+      "name": "ReAct Pattern",
+      "description": "Ciclo interactivo de Razonamiento y Acción (Thought, Action, Observation) para resolver tareas complejas.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "langgraph",
+      "label": "Framework",
+      "name": "LangGraph",
+      "description": "Framework para coordinar agentes cíclicos y con estado usando grafos dirigidos.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "tools-and-function-calling",
+      "label": "Component",
+      "name": "Tools & Function Calling",
+      "description": "Capacidad del LLM para invocar funciones tipadas y comunicarse con sistemas externos.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "langsmith",
+      "label": "Tool",
+      "name": "LangSmith",
+      "description": "Plataforma de observabilidad, evaluación y depuración de llamadas y trazas de agentes.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "rag",
+      "label": "Architecture",
+      "name": "RAG (Retrieval-Augmented Generation)",
+      "description": "Técnica que combina recuperación de documentos en bases vectoriales con generación condicionada en LLMs.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "fine-tuning",
+      "label": "Methodology",
+      "name": "Fine-Tuning",
+      "description": "Adaptación de los pesos de un modelo preentrenado a un estilo, tarea o terminología específica.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "lora",
+      "label": "Technique",
+      "name": "LoRA (Low-Rank Adaptation)",
+      "description": "Afinamiento eficiente de parámetros (PEFT) congelando el modelo base y entrenando matrices de bajo rango.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "vector-store",
+      "label": "Component",
+      "name": "Vector Store (ChromaDB)",
+      "description": "Almacenamiento y búsqueda de similitud por embeddings de texto de alta dimensionalidad.",
+      "properties": {},
+      "chunk_ids": []
+    },
+    {
+      "id": "reranker",
+      "label": "Component",
+      "name": "Reranker (Cross-Encoder)",
+      "description": "Modelo secundario que reordena los candidatos recuperados computando atención cruzada query-documento.",
+      "properties": {},
+      "chunk_ids": []
+    }
+  ],
+  "edges": [
+    {
+      "source": "platform-engineering",
+      "target": "internal-developer-platform",
+      "relation": "DELIVERS",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "internal-developer-platform",
+      "target": "self-service",
+      "relation": "ENABLES",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "internal-developer-platform",
+      "target": "paved-roads",
+      "relation": "PROVIDES",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "platform-engineering",
+      "target": "platform-as-a-product",
+      "relation": "MANAGES_AS",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "platform-engineering",
+      "target": "domain-driven-design",
+      "relation": "APPLIES",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "ai-agent",
+      "target": "react-pattern",
+      "relation": "IMPLEMENTS",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "ai-agent",
+      "target": "tools-and-function-calling",
+      "relation": "USES",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "langgraph",
+      "target": "ai-agent",
+      "relation": "BUILDS",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "ai-agent",
+      "target": "langsmith",
+      "relation": "MONITORED_BY",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "fine-tuning",
+      "target": "rag",
+      "relation": "COMPARES_WITH",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "fine-tuning",
+      "target": "lora",
+      "relation": "OPTIMIZED_BY",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "rag",
+      "target": "vector-store",
+      "relation": "RETRIEVES_FROM",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "rag",
+      "target": "reranker",
+      "relation": "REORDERED_BY",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "ai-agent",
+      "target": "rag",
+      "relation": "LEVERAGES_KNOWLEDGE_VIA",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "platform-engineering",
+      "target": "rag",
+      "relation": "OPERATES",
+      "weight": 1.0,
+      "properties": {}
+    },
+    {
+      "source": "ai-agent",
+      "target": "internal-developer-platform",
+      "relation": "AUTOMATES_TASKS_ON",
+      "weight": 1.0,
+      "properties": {}
+    }
+  ]
+}

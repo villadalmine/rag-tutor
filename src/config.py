@@ -1,13 +1,21 @@
 """Configuración centralizada para el Tutor de Ingeniería de Plataformas."""
 
 import os
+import sys
+import warnings
 from pathlib import Path
+
+# Suprimir avisos de Hugging Face cuando se corre de forma local sin login
+os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
+os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub")
 
 # Rutas del Proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent
 BOOKS_DIR = BASE_DIR / "books"
 CHROMA_DIR = BASE_DIR / "chroma_db"
 BM25_INDEX_PATH = BASE_DIR / "bm25_index.pkl"
+GRAPH_DATA_PATH = BASE_DIR / "knowledge_graph.json"
 
 # Estrategia de Recuperación (Fase 1: 'hybrid', Fase 2: 'omnigraph')
 RETRIEVER_TYPE = os.getenv("RETRIEVER_TYPE", "hybrid").lower()

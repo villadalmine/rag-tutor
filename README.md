@@ -12,21 +12,27 @@ Consulta el documento de decisiones detallado en [ARCHITECTURE.md](ARCHITECTURE.
 
 ```text
 rag-tutor/
-├── books/                     # Carpeta para colocar tus libros PDF de Manning
+├── books/                     # Carpeta con tus libros PDF de Manning
 │   └── .gitkeep
-├── chroma_db/                 # Base de datos vectorial persistente (se genera al indexar)
+├── chroma_db/                 # Base de datos vectorial persistente (ChromaDB)
+├── bm25_index.pkl             # Índice léxico BM25 para nombres exactos de YAML/Go
+├── knowledge_graph.json       # Grafo ontológico de conceptos y relaciones (Fase 2)
+├── docker-compose.yml         # Contenedor opcional para servicio daemon de Omnigraph
 ├── src/
 │   ├── __init__.py
-│   ├── config.py              # Parámetros centralizados (modelos, rutas, k-neighbors)
+│   ├── config.py              # Parámetros centralizados y selector de motor
 │   ├── core.py                # Tutor Core con loop agéntico de auto-reflexión
+│   ├── cli.py                 # Cliente de consola interactivo y de comandos
 │   ├── ingest.py              # Ingesta de PDFs, chunking técnico e indexación híbrida
-│   ├── mcp_server.py          # Servidor Model Context Protocol (FastMCP)
+│   ├── ingest_graph.py        # Ingesta y generación del grafo ontológico (Fase 2)
+│   ├── graph_schema.py        # Esquema de nodos y aristas del Grafo de Conocimiento
+│   ├── mcp_server.py          # Servidor Model Context Protocol (FastMCP / MCPServer)
 │   ├── api.py                 # API REST FastAPI para interfaces Web / Open WebUI
 │   └── retrievers/
 │       ├── __init__.py
-│       ├── base.py            # Interfaz abstracta BaseRetriever
+│       ├── base.py            # Interfaz abstracta BaseRetriever y RetrievedChunk
 │       ├── hybrid.py          # Fase 1: ChromaDB + BM25 + Cross-Encoder Reranker
-│       └── omnigraph.py       # Fase 2: Conector para ModernRelay Omnigraph
+│       └── omnigraph.py       # Fase 2: Conector Omnigraph (Remoto + Local GraphRAG)
 ├── requirements.txt           # Dependencias de Python
 ├── ARCHITECTURE.md            # Registro de decisiones de arquitectura y roadmap
 └── README.md
@@ -36,26 +42,46 @@ rag-tutor/
 
 ## Roadmap Iterativo
 
-1. **Fase 1 (Implementada)**:
-   - Ingesta con chunking optimizado para bloques YAML y Go.
-   - Búsqueda híbrida (Chroma semántico + BM25 exacto).
-   - Reranking local con Cross-Encoder.
-   - Agentic RAG loop (evaluación y profundización en máx. 2 pasos).
-   - Servidor FastMCP para terminal/Goose/Claude/Antigravity + API FastAPI.
-2. **Fase 2 (Próxima iteración)**:
-   - Integración con [ModernRelay Omnigraph](https://github.com/ModernRelay/omnigraph) mediante `src/retrievers/omnigraph.py`.
-   - Extracción y mapeo ontológico de dependencias de plataforma (CRD ➔ Operador ➔ Webhook).
+- [x] **Fase 1 (Fundamento Híbrido)**:
+  - Ingesta con chunking optimizado para bloques YAML y Go (4 libros, 1.676 págs, 4.169 fragmentos).
+  - Búsqueda híbrida (Chroma semántico + BM25 exacto).
+  - Reranking local con Cross-Encoder (`ms-marco-MiniLM-L-6-v2`).
+  - Agentic RAG loop (evaluación y profundización en máx. 2 pasos).
+  - Servidor MCP compatible con `mcp 2.x` + API FastAPI + CLI interactivo.
+- [x] **Fase 2 (GraphRAG / Omnigraph)**:
+  - Definición del esquema ontológico (`src/graph_schema.py`) con nodos y aristas de Platform Engineering y AI Agents.
+  - Generador de ontología y persistencia en `knowledge_graph.json` (`src/ingest_graph.py`).
+  - Conector `OmnigraphRetriever` con soporte dual: consulta remota a daemon Omnigraph vía HTTP o traversal de relaciones en memoria local.
+  - Configuración opcional con Docker Compose (`docker-compose.yml`).
+
+---
+
+## Autenticación Opcional en Hugging Face (HF_TOKEN)
+
+> [!NOTE]
+> **El sistema opera 100% en local y offline sin necesidad de iniciar sesión ni crear cuentas.**
+> Los modelos de embeddings y reranking ya están descargados en tu caché local (`~/.cache/huggingface/hub`).
+
+Si en algún momento deseas vincular tu cuenta personal de Hugging Face para obtener límites más altos de descarga o utilizar modelos privados:
+1. Genera un token gratuito de tipo *Read* en [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
+2. Configúralo en tu terminal antes de ejecutar:
+   ```powershell
+   $env:HF_TOKEN = "hf_tu_token_aqui"
+   ```
+   O mediante el CLI oficial:
+   ```powershell
+   huggingface-cli login
+   ```
+Si no defines ningún token, el código suprime automáticamente las advertencias y funciona de forma silenciosa y autónoma.
 
 ---
 
 ## Requisitos Previos
 
-- **Python**: 3.10 o superior (recomendado 3.11 o 3.12).
-- **Ollama**: Instalado localmente con el modelo deseado:
+- **Python**: 3.10 o superior (recomendado 3.11).
+- **Ollama**: Con el modelo instalado (ej. `qwen2.5:7b`):
   ```bash
-  ollama pull qwen2.5:7b-instruct
-  # Opcional si cuentas con RAM suficiente (ej. 256GB):
-  # ollama pull qwen2.5:32b-instruct
+  ollama pull qwen2.5:7b
   ```
 
 ---

@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  # Servicio Opcional de Omnigraph (ModernRelay Lakehouse Graph)
+  # Si este servicio está arriba en el puerto 8080, OmnigraphRetriever se conecta
+  # automáticamente vía HTTP/MCP. Si no está levantado, el tutor usa su motor de grafo
+  # ontológico en memoria local (knowledge_graph.json) sin requerir Docker.
+  omnigraph:
+    image: ghcr.io/modernrelay/omnigraph:latest
+    container_name: rag-tutor-omnigraph
+    ports:
+      - "8080:8080"
+    environment:
+      - OMNIGRAPH_DATA_DIR=/data
+      - OMNIGRAPH_PORT=8080
+    volumes:
+      - ./omnigraph_data:/data
+    restart: unless-stopped

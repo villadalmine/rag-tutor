@@ -89,20 +89,16 @@ La Fase 1 implementa un stack 100% autónomo y autocontenido en Python que corre
    (Kubernetes API Server) ──[webhook_validated_by]──► (AdmissionWebhook)
   ```
 
-### ¿Cómo se alcanza la Fase 2 sin reescribir el proyecto?
+### ¿Cómo se implementó la Fase 2 en el código?
 1. **Capa de Abstracción `BaseRetriever` (`src/retrievers/base.py`):**
-   - El Core del tutor (`TutorCore`) no interactúa directamente con ChromaDB ni con Omnigraph. Consume la interfaz:
-     ```python
-     class BaseRetriever(ABC):
-         @abstractmethod
-         def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedChunk]:
-             pass
-     ```
-2. **Conector `OmnigraphRetriever` (`src/retrievers/omnigraph.py`):**
-   - Se conecta al daemon local o contenedor de Omnigraph vía su API HTTP o `@modernrelay/omnigraph-mcp`.
-   - Realiza traversal de nodos en el grafo combinado con búsqueda ANN en Lance.
-3. **Pipeline de Ingesta Ontológica:**
-   - Se añade un script `src/ingest_graph.py` que, además de generar fragmentos de texto, extrae entidades técnicas (CRDs, Controladores, Pipelines, Operadores) y genera las aristas en Omnigraph.
+   - El Core del tutor (`AgenticTutorCore`) interactúa únicamente con la interfaz unificada `BaseRetriever`.
+2. **Conector Dual `OmnigraphRetriever` (`src/retrievers/omnigraph.py`):**
+   - **Modo Remoto (Daemon Omnigraph):** Si el servicio local o contenedor de Omnigraph está activo en `http://localhost:8080`, consulta directamente su API GraphQL/REST de grafos sobre Lance.
+   - **Modo Local Integrado (GraphRAG en memoria):** Si no hay un contenedor externo corriendo, carga automáticamente `knowledge_graph.json` y ejecuta el recorrido de relaciones (BFS/Multi-hop Traversal) en Python, combinándolo con la búsqueda semántica y léxica.
+3. **Pipeline de Ingesta Ontológica (`src/ingest_graph.py`):**
+   - Extrae y mapea 16 entidades clave y 16 relaciones directas entre conceptos de Platform Engineering, AI Agents (LangGraph, ReAct), LLMs in Production (Fine-Tuning, LoRA, RAG).
+4. **Despliegue Contenedorizado (`docker-compose.yml`):**
+   - Configuración lista para levantar el servicio `ghcr.io/modernrelay/omnigraph:latest` cuando se requiera persistencia de grafos a escala.
 
 ---
 
