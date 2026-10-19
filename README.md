@@ -4,7 +4,7 @@ Tutor de Inteligencia Artificial Local especializado en libros técnicos de Mann
 
 Implementa una **arquitectura híbrida (Vectorial + BM25 con Reranker)**, un **loop de razonamiento agéntico liviano** y **exposición dual (Servidor MCP + API REST)**, diseñada de forma desacoplada para evolucionar iterativamente hacia **Omnigraph (GraphRAG)**.
 
-Consulta el documento de decisiones detallado en [ARCHITECTURE.md](ARCHITECTURE.md) y el funcionamiento del motor de metadatos universal en [METADATA_SYSTEM.md](METADATA_SYSTEM.md).
+Consulta el documento de decisiones detallado en [ARCHITECTURE.md](ARCHITECTURE.md), el motor de metadatos universal en [METADATA_SYSTEM.md](METADATA_SYSTEM.md) y la integración con certificaciones abiertas en [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md).
 
 ---
 
@@ -36,6 +36,7 @@ rag-tutor/
 ├── requirements.txt           # Dependencias de Python
 ├── ARCHITECTURE.md            # Registro de decisiones de arquitectura y roadmap
 ├── METADATA_SYSTEM.md         # Motor de metadatos universal y auto-perfilado
+├── CERTIFICATION_TUTOR_MCP.md # Integración Open WebUI + MCP con study-cybercirujas
 └── README.md
 ```
 
