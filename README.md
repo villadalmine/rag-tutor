@@ -4,7 +4,7 @@ Tutor de Inteligencia Artificial Local especializado en libros técnicos de Mann
 
 Implementa una **arquitectura híbrida (Vectorial + BM25 con Reranker)**, un **loop de razonamiento agéntico liviano** y **exposición dual (Servidor MCP + API REST)**, diseñada de forma desacoplada para evolucionar iterativamente hacia **Omnigraph (GraphRAG)**.
 
-Consulta el documento de decisiones detallado en [ARCHITECTURE.md](ARCHITECTURE.md), el motor de metadatos universal en [METADATA_SYSTEM.md](METADATA_SYSTEM.md) y la integración con certificaciones abiertas en [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md).
+Consulta el documento de decisiones en [ARCHITECTURE.md](ARCHITECTURE.md), el motor de metadatos en [METADATA_SYSTEM.md](METADATA_SYSTEM.md), la integración con certificaciones en [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), la declaración de IA y guardrails en [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md) y las pruebas reales en [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -37,6 +37,9 @@ rag-tutor/
 ├── ARCHITECTURE.md            # Registro de decisiones de arquitectura y roadmap
 ├── METADATA_SYSTEM.md         # Motor de metadatos universal y auto-perfilado
 ├── CERTIFICATION_TUTOR_MCP.md # Integración Open WebUI + MCP con study-cybercirujas
+├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparencia, trazabilidad y guardrails (EU AI Act)
+├── VERIFICATION_TESTS.md      # Informe de pruebas empíricas reales reproducibles
+├── LICENSE                    # Licencia Apache 2.0 de código abierto
 └── README.md
 ```
 
@@ -249,4 +252,30 @@ A continuación se detallan las tecnologías de código abierto que componen la 
 | **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Motor de inferencia local de modelos de lenguaje en hardware propio (CPU Xeon / GPU). |
 | **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Familia de modelos fundacionales de código abierto de última generación utilizados para el razonamiento agéntico y síntesis técnica. |
 | **uv (Astral)** | [astral-sh/uv](https://github.com/astral-sh/uv) | Gestor de paquetes y entornos virtuales de Python ultrarrápido escrito en Rust. |
+
+---
+
+## Declaración de IA, Transparencia y Guardrails
+
+El contenido pedagógico y las respuestas sintetizadas por `rag-tutor` son generadas por modelos de lenguaje de gran escala (LLMs) ejecutados localmente. Al igual que en proyectos de educación abierta como [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas):
+- El sistema actúa como un **asistente de estudio**; los libros de ingeniería y la documentación oficial de los vendors son la máxima autoridad técnica.
+- Se implementan **4 capas de guardrails automáticos** en código: Reranking Cross-Encoder, Loop Agéntico de Auto-Reflexión, Citas Obligatorias de Páginas y Soberanía Local de Datos sin telemetría.
+- Cumple con los estándares de trazabilidad y transparencia en alineación con el **Artículo 50 del AI Act de la Unión Europea**.
+
+Consulta la declaración completa en [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md).
+
+---
+
+## Pruebas de Verificación y Reproducibilidad
+
+Todas las afirmaciones sobre rendimiento, latencia (<350 ms pre-LLM), mitigación de dilución en 23.343 fragmentos y precisión de citas fueron validadas mediante pruebas empíricas reales en hardware local.
+
+Consulta el reporte de ejecución con traza completa y pasos de reproducción en [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+
+---
+
+## Licencia
+
+Este proyecto está bajo la **Licencia Apache 2.0** de código abierto. Consulta el archivo [LICENSE](LICENSE) para más detalles.
+
 
