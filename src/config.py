@@ -5,10 +5,12 @@ import sys
 import warnings
 from pathlib import Path
 
-# Suprimir avisos de Hugging Face cuando se corre de forma local sin login
+# Forzar modo 100% offline y silencioso por defecto (elimina avisos de login de Hugging Face)
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
 os.environ.setdefault("HF_HUB_DISABLE_SYMLINKS_WARNING", "1")
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-warnings.filterwarnings("ignore", category=UserWarning, module="huggingface_hub")
+warnings.filterwarnings("ignore")
 
 # Rutas del Proyecto
 BASE_DIR = Path(__file__).resolve().parent.parent

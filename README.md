@@ -206,3 +206,25 @@ Podrás probar el endpoint `POST /chat` directamente con un clic desde la interf
 ```powershell
 Invoke-RestMethod -Uri "http://localhost:8000/chat" -Method Post -ContentType "application/json" -Body '{"question": "¿Qué es Crossplane y cómo se relaciona con Platform Engineering?"}'
 ```
+
+---
+
+## Tecnologías Utilizadas y Repositorios Oficiales
+
+A continuación se detallan las tecnologías de código abierto que componen la arquitectura del proyecto, junto con sus repositorios fuente y su rol en el sistema:
+
+| Tecnología | Repositorio Oficial | Rol en el Proyecto |
+| :--- | :--- | :--- |
+| **ModernRelay Omnigraph** | [ModernRelay/omnigraph](https://github.com/ModernRelay/omnigraph) | Motor de base de datos de grafos nativo de lakehouse sobre Lance con Git-style branching para estado agéntico y relaciones ontológicas (Fase 2). |
+| **Lance** | [lancedb/lance](https://github.com/lancedb/lance) | Formato columnar moderno para datos multimodales y búsqueda vectorial de alto rendimiento utilizado por Omnigraph. |
+| **ChromaDB** | [chroma-core/chroma](https://github.com/chroma-core/chroma) | Base de datos vectorial embebida de código abierto para indexación y búsqueda semántica de fragmentos técnicos (Fase 1). |
+| **Rank-BM25** | [dorianbrown/rank_bm25](https://github.com/dorianbrown/rank_bm25) | Implementación de algoritmos de búsqueda léxica BM25 (Okapi BM25) para captura exacta de nombres de CRDs, YAMLs y funciones. |
+| **Sentence-Transformers** | [UKPLab/sentence-transformers](https://github.com/UKPLab/sentence-transformers) | Framework para computar embeddings densos (`all-MiniLM-L6-v2`) y modelos de Cross-Encoder Reranking (`ms-marco-MiniLM-L-6-v2`). |
+| **LangChain Core & Community** | [langchain-ai/langchain](https://github.com/langchain-ai/langchain) | Abstracciones para orquestación de RAG, splitters de texto con preservación de código y loaders de documentos. |
+| **PyMuPDF (fitz)** | [pymupdf/PyMuPDF](https://github.com/pymupdf/PyMuPDF) | Extracción ultrarrápida de texto, metadatos y páginas desde libros PDF. |
+| **Model Context Protocol (MCP)** | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | SDK oficial de Anthropic / Linux Foundation para exponer herramientas a agentes de IA mediante el protocolo MCP (v2.x `MCPServer`). |
+| **FastAPI** | [fastapi/fastapi](https://github.com/fastapi/fastapi) | Framework web asíncrono para construir la API REST y documentación interactiva Swagger UI. |
+| **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Motor de inferencia local de modelos de lenguaje en hardware propio (CPU Xeon / GPU). |
+| **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Familia de modelos fundacionales de código abierto de última generación utilizados para el razonamiento agéntico y síntesis técnica. |
+| **uv (Astral)** | [astral-sh/uv](https://github.com/astral-sh/uv) | Gestor de paquetes y entornos virtuales de Python ultrarrápido escrito en Rust. |
+
