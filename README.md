@@ -45,6 +45,7 @@ rag-tutor/
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
+├── HOW_TO_MULTI_MCP_101.md    # Beginner 101 guide: How agents coordinate multiple MCP servers
 ├── USE_CASES_AND_EXAMPLES.md  # Step-by-step setup walkthrough and real terminal outputs
 ├── RESEARCH_AND_LESSONS_LEARNED.md # Multi-MCP orchestration research, challenges & solutions
 ├── AI_DISCLOSURE_AND_GUARDRAILS.md # Transparency, traceability, and guardrails (EU AI Act)
@@ -295,6 +296,8 @@ For an in-depth analysis of how autonomous agents can coordinate multiple MCP se
 3. **Key Implementations:** SHA-256 incremental hashing, embedded KùzuDB Cypher engine, Hugo shortcode preprocessors, and SQLite FTS5 stores.
 4. **Behind-the-Scenes Hurdles:** Resolving batch insert limits, UTF-8 Windows stream encoding, and deterministic OpenAPI schema validation.
 5. **Research Scope Notice:** Clear framing of this project as an educational proof-of-concept for sovereign information access.
+
+For an intuitive, step-by-step 101 guide explaining how an AI agent decides which MCP to consult (e.g. answering *"How does etcd work in K8s?"* without querying all tools blindly), read **[HOW_TO_MULTI_MCP_101.md](HOW_TO_MULTI_MCP_101.md)**.
 
 ---
 
