@@ -53,13 +53,14 @@ Modern platform engineering education requires three complementary, sovereign la
 
 All services are **already initialized and active** in the background:
 
-| Service | Local URL / Command | Health Endpoint | Status |
+| Service | Local URL / Direct Link | Health Endpoint | Status |
 | :--- | :--- | :--- | :--- |
-| **Study Platform Web UI** | `http://localhost:8080` | `http://localhost:8080/healthz` | **RUNNING** |
-| **Study Platform API** | `http://localhost:8080/api/catalog` | `http://localhost:8080/docs` | **RUNNING** |
-| **RAG Tutor REST API** | `http://localhost:8000` | `http://localhost:8000/health` | **RUNNING** |
-| **Open WebUI Frontend** | `http://localhost:3000` | `http://localhost:3000/api/config` | **RUNNING** |
-| **Ollama Local Engine** | `http://localhost:11434` | `http://localhost:11434/api/tags` | **RUNNING** |
+| **Study Platform Web UI** | [http://localhost:8080](http://localhost:8080) | [http://localhost:8080/healthz](http://localhost:8080/healthz) | **RUNNING** |
+| **Study Platform API Docs** | [http://localhost:8080/docs](http://localhost:8080/docs) | [http://localhost:8080/api/catalog](http://localhost:8080/api/catalog) | **RUNNING** |
+| **RAG Tutor REST API** | [http://localhost:8000](http://localhost:8000) | [http://localhost:8000/health](http://localhost:8000/health) | **RUNNING** |
+| **RAG Tutor Swagger Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json) | **RUNNING** |
+| **Open WebUI Frontend** | [http://localhost:3000](http://localhost:3000) | [http://localhost:3000/api/config](http://localhost:3000/api/config) | **RUNNING** |
+| **Ollama Local Engine** | [http://localhost:11434](http://localhost:11434) | [http://localhost:11434/api/tags](http://localhost:11434/api/tags) | **RUNNING** |
 
 ---
 
@@ -68,12 +69,12 @@ All services are **already initialized and active** in the background:
 ### Part 1: Exploring `study-cybercirujas` (The Educational Platform)
 
 `study-cybercirujas` is a self-service IT certification platform built on a pure Markdown/YAML corpus, featuring automated syllabus tracking, multi-language support (ES, EN, FR, DE, ZH, JA, PT), and reproducible break/fix hands-on labs.
+GitHub: [https://github.com/villadalmine/study-cybercirujas](https://github.com/villadalmine/study-cybercirujas)
 
 #### 1.1 Open the Interactive Web Platform
-Open your browser and navigate to:
-```text
-http://localhost:8080
-```
+Click the link to open directly in your browser:
+👉 **[Open Study Platform (http://localhost:8080)](http://localhost:8080)**
+
 - **What to show in the demo:**
   1. **Certification Catalog:** 38 technical certifications organized by domains:
      - Cloud Native: `CKA`, `CKAD`, `CKS`, `KCNA`, `KCSA`, `CNPE`
@@ -84,7 +85,12 @@ http://localhost:8080
   3. **Break/Fix Hands-on Labs:** Show that every objective includes an incident scenario with a reproducible bash script (`break_fix.sh --break` and `--check`) ready to run in a local cluster.
 
 #### 1.2 Inspecting the Platform REST API
-The platform provides a lightweight FastAPI backend:
+You can click these live endpoints directly in your browser or curl them:
+- **Catalog API:** [http://localhost:8080/api/catalog](http://localhost:8080/api/catalog)
+- **Search API (e.g. admission):** [http://localhost:8080/api/search?q=admission](http://localhost:8080/api/search?q=admission)
+- **Topic API (CNPE 3.4):** [http://localhost:8080/api/certs/cnpe/topics/3.4?lang=en](http://localhost:8080/api/certs/cnpe/topics/3.4?lang=en)
+- **Swagger Interactive Docs:** [http://localhost:8080/docs](http://localhost:8080/docs)
+
 ```bash
 # Verify catalog and certification listing
 curl -s http://localhost:8080/api/catalog | jq 'keys'
@@ -118,6 +124,7 @@ make serve PORT=8080
 ### Part 2: Using the `study-cybercirujas` MCP Server
 
 The platform exposes its entire knowledge base via the standard **Model Context Protocol (MCP)** using `teach.mcp_server`.
+GitHub repository: [https://github.com/villadalmine/study-cybercirujas](https://github.com/villadalmine/study-cybercirujas)
 
 #### 2.1 The MCP Contract (Four Sovereign Tools)
 1. `list_certs()`: Returns all 38 certifications and counts of generated objectives.
@@ -126,7 +133,7 @@ The platform exposes its entire knowledge base via the standard **Model Context 
 4. `search_topics(query: str, cert: str | None)`: Fast keyword search across titles, domains, and exam objectives.
 
 #### 2.2 Adding `teach.mcp_server` to Claude Desktop / Cursor
-Add the following to your `claude_desktop_config.json` or `.cursor/mcp.json`:
+You can configure both [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas) and [k8s-docs-mcp](https://github.com/villadalmine/k8s-docs-mcp) simultaneously in your `claude_desktop_config.json` or `.cursor/mcp.json`:
 
 ```json
 {
@@ -151,7 +158,9 @@ Add the following to your `claude_desktop_config.json` or `.cursor/mcp.json`:
 Open WebUI provides a unified UI for local models, OpenAPI tools, and multi-agent workflows without cloud telemetry.
 
 #### 3.1 Verifying Ollama Engine
-Ollama runs locally on port `11434`. Check available models:
+Ollama runs locally on port `11434`. You can inspect available models via browser or curl:
+- **Ollama Tags API:** [http://localhost:11434/api/tags](http://localhost:11434/api/tags)
+
 ```bash
 curl -s http://localhost:11434/api/tags | jq '.models[].name'
 ```
@@ -161,19 +170,20 @@ Expected output:
 - `bge-m3:latest` (Dense multilingual embeddings)
 
 #### 3.2 Accessing Open WebUI
-Open your browser and navigate to:
-```text
-http://localhost:3000
-```
+Click the link to open directly in your browser:
+👉 **[Open WebUI Interface (http://localhost:3000)](http://localhost:3000)**
+
 - Open WebUI runs in Docker with `WEBUI_AUTH=False` (instant access, zero login hurdles for live demos).
 - The models from Ollama are detected automatically via `http://host.docker.internal:11434`.
 
 #### 3.3 Registering `rag-tutor` as an OpenAPI Tool in Open WebUI
-Open WebUI can directly call REST APIs that expose OpenAPI 3.0 specs.
+Open WebUI can directly call REST APIs that expose OpenAPI 3.0 specs:
+- **RAG Tutor OpenAPI Spec:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
+- **RAG Tutor Swagger Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
 
 1. In Open WebUI, navigate to: **Workspace -> Tools -> `+` (Create Tool)**.
 2. Click on the three dots `...` in the top right or select **Import from OpenAPI**.
-3. Enter the OpenAPI URL:
+3. Enter the internal container OpenAPI URL:
    ```text
    http://host.docker.internal:8000/openapi.json
    ```
@@ -266,18 +276,18 @@ python test_multi_mcp_live.py
 
 If you have 3 minutes to present this platform:
 
-1. **Minute 1: The Problem & The Platform UI (`http://localhost:8080`)**
+1. **Minute 1: The Problem & The Platform UI ([http://localhost:8080](http://localhost:8080))**
    - *"Engineers preparing for CKA or platform roles currently struggle with fragmented documentation and outdated YAMLs.*
-   - *Here is study-cybercirujas: a 100% sovereign learning catalog covering 38 certifications and 700+ topics with hands-on break/fix labs.*
+   - *Here is [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas): a 100% sovereign learning catalog covering 38 certifications and 700+ topics with hands-on break/fix labs.*
    - *Notice that every topic is open, tracked against official CNCF syllabi, and runs completely offline."*
 
 2. **Minute 2: The Multi-MCP Trifecta (`test_multi_mcp_live.py`)**
    - *"When asking an LLM for technical assistance, single-source prompts hallucinate deprecated APIs.*
-   - *We solved this with a Cloud Native Trifecta: study-cybercirujas tells the agent what is in scope; k8s-docs-mcp validates the exact kubernetes.io API and canonical manifest; rag-tutor provides the architectural depth from Manning engineering books.*
+   - *We solved this with a Cloud Native Trifecta: [study-cybercirujas](https://github.com/villadalmine/study-cybercirujas) tells the agent what is in scope; [k8s-docs-mcp](https://github.com/villadalmine/k8s-docs-mcp) validates the exact kubernetes.io API and canonical manifest; [rag-tutor](https://github.com/villadalmine/rag-tutor) provides the architectural depth from Manning engineering books.*
    - *Let's run `python test_multi_mcp_live.py` in live terminal — watch the agent query the syllabus, pull the official CEL manifest, and ground the answer in platform engineering literature."*
 
-3. **Minute 3: Open WebUI & Local Sovereignty (`http://localhost:3000`)**
-   - *"Finally, here is Open WebUI connected to local Ollama running Qwen 2.5.*
+3. **Minute 3: Open WebUI & Local Sovereignty ([http://localhost:3000](http://localhost:3000))**
+   - *"Finally, here is [Open WebUI](http://localhost:3000) connected to local Ollama running Qwen 2.5.*
    - *All three tools are accessible right in the chat interface. Zero cloud costs, zero privacy leakage, 100% deterministic platform engineering."*
 
 ---

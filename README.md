@@ -229,13 +229,11 @@ Exposes the tutor over standard HTTP, allowing integration with Web frontends, s
 ```bash
 python src/api.py
 ```
-Default URL: `http://localhost:8000`
+Default URL: [http://localhost:8000](http://localhost:8000)
 
 #### Interactive API Documentation (Swagger UI):
 Open in your browser:
-```text
-http://localhost:8000/docs
-```
+👉 **[Open Swagger UI (http://localhost:8000/docs)](http://localhost:8000/docs)**
 You can test the `POST /chat` endpoint directly from the UI.
 
 #### Available Endpoints:
