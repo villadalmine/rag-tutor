@@ -9,7 +9,7 @@ Agnostic, sovereign local AI tutor for technical books (Software Engineering, Ku
 
 It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_STUDY_OPENWEBUI.md](DEMO_RUNBOOK_STUDY_OPENWEBUI.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -42,8 +42,9 @@ rag-tutor/
 │       └── omnigraph.py       # Phase 2: KùzuDB Cypher + Omnigraph connector
 ├── requirements.txt           # Python dependencies
 ├── test_multi_mcp_live.py     # Live Tri-MCP verification (study-cybercirujas + k8s-docs-mcp + rag-tutor)
-├── DEMO_RUNBOOK_STUDY_OPENWEBUI.md # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP (English)
-├── DEMO_RUNBOOK_ES.md         # Guía de demostración completa en español con enlaces interactivos
+├── DEMO_RUNBOOK_EN.md         # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP (English)
+├── DEMO_RUNBOOK_ES.md         # Guía de demostración completa en español con diagramas y enlaces interactivos
+├── DEMO_RUNBOOK_STUDY_OPENWEBUI.md # Direct alias for DEMO_RUNBOOK_EN.md
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas

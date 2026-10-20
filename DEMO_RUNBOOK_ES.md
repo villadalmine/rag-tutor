@@ -1,7 +1,10 @@
 # 🚀 Guía de Demostración: Plataforma Cloud Native Soberana & Modelo Tri-MCP
 
 > **Runbook Completo de Demostración y Despliegue en Vivo**  
-> Guía paso a paso para ejecutar, presentar y orquestar **study-cybercirujas**, **k8s-docs-mcp**, **rag-tutor**, **Ollama** y **Open WebUI** en un entorno 100% local, soberano y sin dependencias cloud.
+> Guía paso a paso para ejecutar, presentar y orquestar **study-cybercirujas**, **k8s-docs-mcp**, **rag-tutor**, **Ollama** y **Open WebUI** en un entorno 100% local, soberano y sin dependencias cloud.  
+> 🇬🇧 *English version available at:* [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md)  
+> 📖 *Glosario de tecnologías y conceptos:* [GLOSSARY.md](GLOSSARY.md)  
+> ⚡ *Cheatsheet de comandos rápidos:* [CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)
 
 ---
 

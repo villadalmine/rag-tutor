@@ -441,6 +441,7 @@ docker run -d -p 3000:8080 --add-host=host.docker.internal:host-gateway \
 
 ## 📚 Documentación Complementaria en el Repositorio
 - [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md): Guía paso a paso en español para la presentación y audiencia.
-- [DEMO_RUNBOOK_STUDY_OPENWEBUI.md](DEMO_RUNBOOK_STUDY_OPENWEBUI.md): Runbook técnico en inglés.
+- [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md): Runbook técnico completo en inglés.
+- [DEMO_RUNBOOK_STUDY_OPENWEBUI.md](DEMO_RUNBOOK_STUDY_OPENWEBUI.md): Alias directo de DEMO_RUNBOOK_EN.md.
 - [HOW_TO_MULTI_MCP_101.md](HOW_TO_MULTI_MCP_101.md): Explicación pedagógica de cómo el agente decide a qué servidor consultar sin colisiones.
 - [RESEARCH_AND_LESSONS_LEARNED.md](RESEARCH_AND_LESSONS_LEARNED.md): Arquitectura detallada, superación de cuellos de botella y diseño determinístico.
