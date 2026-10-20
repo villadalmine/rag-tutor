@@ -271,7 +271,7 @@ Ahora configuramos el modelo que estabas creando en Open WebUI:
 1. Ve a **Espacio de Trabajo (Workspace) ➔ Modelos (Models) ➔ `+` (Crear Modelo)**.
 2. Completa los campos:
    - **Nombre:** `Tutor Cloud Native (Tri-MCP)`
-   - **Modelo Base (desde):** Selecciona `qwen2.5:7b` o `qwen3:4b`.
+   - **Modelo Base (desde):** Selecciona **`qwen3:4b-fast`** (ultra rápido a ~100 tokens/s en 100% GPU) o **`qwen2.5:7b`** (32k de contexto, ideal para síntesis exhaustiva).
    - **Descripción:** `Asistente especializado en arquitectura de plataformas, temarios CNCF y sintaxis oficial de Kubernetes.`
    - **Prompt del sistema:**
      ```text

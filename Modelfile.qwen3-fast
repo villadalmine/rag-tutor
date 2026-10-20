@@ -1,0 +1,6 @@
+# Modelfile para qwen3:4b optimizado para 100% GPU offload en AMD Radeon RX 6800
+# Reduce la ventana de contexto de 256k a 16k tokens, evitando desbordar VRAM a CPU.
+# Resultado: Generación a ~100 tokens/segundo en GPU local.
+FROM qwen3:4b
+PARAMETER num_ctx 16384
+

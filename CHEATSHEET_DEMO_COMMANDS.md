@@ -45,19 +45,19 @@ curl -s http://localhost:11434/api/ps | jq '.models[] | {name, size_vram, runner
 (Invoke-RestMethod -Uri "http://localhost:11434/api/ps").models | Select-Object name, size_vram, runner | Format-Table -AutoSize
 ```
 
-### Salida esperada y confirmada en vivo:
-```json
-{
-  "name": "qwen2.5:7b",
-  "size_vram": 14190452407,
-  "runner": "llamacpp"
-}
+### Salida esperada y confirmada en vivo (100% GPU):
+
+Al consultar `ollama ps`:
+```text
+NAME             ID              SIZE      PROCESSOR    CONTEXT    RUNNER      UNTIL
+qwen3:4b-fast    dc0292753ff4    5.1 GB    100% GPU     16384      llamacpp    4 minutes from now
+qwen2.5:7b       845dbda0ea48    6.6 GB    100% GPU     32768      llamacpp    4 minutes from now
 ```
 
 > [!NOTE]
-> - **`size_vram: 14190452407`**: Significa que **~14.19 GB** de los pesos del modelo y capas de atención están alojados directamente en la memoria VRAM de la placa de video **AMD Radeon RX 6800**.
-> - **`runner: llamacpp`**: Ejecutor de cómputo compilado con soporte para AMD ROCm / HIP.
-> - **Uso de la CPU Dell**: 0% de cálculo de tensores; la CPU solo transfiere paquetes HTTP y serializa JSON.
+> - **`qwen3:4b-fast`**: Creado con ventana de contexto optimizada de 16k tokens ([Modelfile.qwen3-fast](Modelfile.qwen3-fast)). Ocupa solo 5.1 GB de VRAM y alcanza una velocidad de **101.8 tokens/segundo** en la **AMD Radeon RX 6800**.
+> - **`qwen2.5:7b`**: Modelo de 7B de alta solidez arquitectónica, con ventana de 32k tokens. Ocupa 6.6 GB de VRAM y corre también en 100% GPU.
+> - **Ambos modelos en simultáneo**: 5.1 GB + 6.6 GB = 11.7 GB, conviviendo holgadamente dentro de los 16 GB de VRAM de la placa de video sin hacer swap a la CPU Dell.
 
 ---
 
