@@ -1,7 +1,8 @@
 # 🚀 Demo Runbook: Sovereign Cloud Native Learning Platform & Tri-MCP Model
 
 > **Live Demo & Deployment Guide**  
-> Complete walkthrough to run, demonstrate, and orchestrate **study-cybercirujas**, **k8s-docs-mcp**, **rag-tutor**, **Ollama**, and **Open WebUI** in a 100% sovereign, local-first platform engineering environment.
+> Complete walkthrough to run, demonstrate, and orchestrate **study-cybercirujas**, **k8s-docs-mcp**, **rag-tutor**, **Ollama**, and **Open WebUI** in a 100% sovereign, local-first platform engineering environment.  
+> 🇪🇸 *Versión en español disponible en:* [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md)
 
 ---
 

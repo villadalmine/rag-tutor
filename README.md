@@ -9,7 +9,7 @@ Agnostic, sovereign local AI tutor for technical books (Software Engineering, Ku
 
 It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbook in [DEMO_RUNBOOK_STUDY_OPENWEBUI.md](DEMO_RUNBOOK_STUDY_OPENWEBUI.md), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_STUDY_OPENWEBUI.md](DEMO_RUNBOOK_STUDY_OPENWEBUI.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -42,7 +42,8 @@ rag-tutor/
 │       └── omnigraph.py       # Phase 2: KùzuDB Cypher + Omnigraph connector
 ├── requirements.txt           # Python dependencies
 ├── test_multi_mcp_live.py     # Live Tri-MCP verification (study-cybercirujas + k8s-docs-mcp + rag-tutor)
-├── DEMO_RUNBOOK_STUDY_OPENWEBUI.md # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP
+├── DEMO_RUNBOOK_STUDY_OPENWEBUI.md # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP (English)
+├── DEMO_RUNBOOK_ES.md         # Guía de demostración completa en español con enlaces interactivos
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
@@ -238,13 +239,25 @@ You can test the `POST /chat` endpoint directly from the UI.
 
 #### Available Endpoints:
 - `GET /health`: Healthcheck verifying ChromaDB, BM25, and local Ollama model connectivity.
-- `POST /chat`: Query endpoint returning answer, sources, and pipeline telemetry.
+- `GET /mcp/status`: Real-time monitoring and connection status across all 3 MCP servers (`study-cybercirujas`, `k8s-docs-mcp`, `rag-tutor`).
+- `POST /mcp/test`: Live diagnostics endpoint to ping and test tools on any or all connected MCP servers.
+- `POST /chat`: Query endpoint returning grounded answers, sources, and pipeline telemetry with optional Tri-MCP enrichment (`orchestrate_tri_mcp: true`).
 
-#### Consumption example via cURL:
+#### Consumption examples via cURL:
+
 ```bash
+# Check status of all 3 connected MCP servers:
+curl -s http://localhost:8000/mcp/status | jq
+
+# Run diagnostics against all MCP servers:
+curl -s -X POST http://localhost:8000/mcp/test \
+  -H "Content-Type: application/json" \
+  -d '{"target": "all", "query": "admission"}' | jq
+
+# Ask a question with full Tri-MCP orchestration:
 curl -s -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"question": "What is Crossplane and how does it relate to Platform Engineering?"}'
+  -d '{"question": "How do in-tree ValidatingAdmissionPolicies work in Kubernetes?", "orchestrate_tri_mcp": true}'
 ```
 
 ---
