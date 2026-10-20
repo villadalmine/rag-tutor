@@ -234,6 +234,32 @@ class Tools:
             return f"Error {resp.status_code}: {resp.text}"
         except Exception as e:
             return f"Error de conexión con Gateway: {str(e)}"
+
+    def test_mcp_integration(self, query: str = "pod") -> str:
+        """
+        Ejecuta un diagnóstico en vivo sobre los tres MCP con cualquier consulta técnica o Kind.
+        :param query: Término técnico o prompt en lenguaje natural (ej: 'pod', 'admission', 'network policy').
+        :return: Resumen estructurado del test de interoperabilidad.
+        """
+        url = f"{self.gateway_url}/mcp/test"
+        try:
+            resp = requests.post(url, json={"target": "all", "query": query}, timeout=15.0)
+            if resp.status_code == 200:
+                data = resp.json().get("diagnostic_results", {})
+                study = data.get("study_cybercirujas", {})
+                k8s = data.get("k8s_docs_mcp", {})
+                rag = data.get("rag_tutor", {})
+
+                report = [
+                    f"### 🧪 Diagnóstico Multi-MCP para: `{query}`\n",
+                    f"- **study-cybercirujas:** {study.get('status')} | Objetivo: `{study.get('matched_objective')}` ({study.get('certification')})",
+                    f"- **k8s-docs-mcp:** {k8s.get('status')} | Kind: `{k8s.get('detected_kind')}` | Manifiestos verificados: {k8s.get('manifests_count')}",
+                    f"- **rag-tutor:** {rag.get('status')} | Motor: `{rag.get('retriever_type')}` | Modelo: `{rag.get('ollama_model')}`"
+                ]
+                return "\n".join(report)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Error de conexión con Gateway: {str(e)}"
 ```
 4. Haz clic en **Guardar**. Verás la herramienta listada como **`Cloud Native Tri-MCP Tutor`**.
 
@@ -272,10 +298,20 @@ Puedes demostrar la coordinación de los 3 servidores MCP en cualquiera de estos
 
 2. **Inspeccionar el Gateway Tri-MCP por cURL o Swagger:**
    - **Estado de conexión:** [http://localhost:8000/mcp/status](http://localhost:8000/mcp/status)
-   - **Test de diagnóstico en vivo:**
+   - **Test de diagnóstico con lenguaje natural e inferencia determinística:**
      ```powershell
-     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body '{"target": "all", "query": "admission"}' | ConvertTo-Json -Depth 5
+     $body = @{
+       target = "all"
+       query = "three example how i can create a pod yaml definition and a theory how works"
+     } | ConvertTo-Json
+
+     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 6
      ```
+     *Observa cómo el sistema:*
+     1. Extrae automáticamente el recurso `Pod` e ignora stop words conversacionales (*three*, *example*, *how*, *create*, *theory*, *works*).
+     2. Valida la apiVersion oficial `v1` (STABLE) y extrae 3 manifiestos canónicos de `kubernetes.io` (Pod individual con probes, Pod multi-contenedor sidecar y Pod con ConfigMap/Secret).
+     3. Prioriza el temario CNCF coincidiendo con `CKA 3.5 (Configure Pod admission and scheduling)` con lab de práctica asociado (`has_lab: true`).
+     4. Valida el motor RAG de libros y grafo KùzuDB.
    - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs) (permite hacer clic en *Try it out* y ejecutar diagnósticos desde el navegador).
 
 #### Opción 2: Desde la UI Web (Open WebUI)

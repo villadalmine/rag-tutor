@@ -240,7 +240,7 @@ You can test the `POST /chat` endpoint directly from the UI.
 #### Available Endpoints:
 - `GET /health`: Healthcheck verifying ChromaDB, BM25, and local Ollama model connectivity.
 - `GET /mcp/status`: Real-time monitoring and connection status across all 3 MCP servers (`study-cybercirujas`, `k8s-docs-mcp`, `rag-tutor`).
-- `POST /mcp/test`: Live diagnostics endpoint to ping and test tools on any or all connected MCP servers.
+- `POST /mcp/test`: Live diagnostics endpoint with deterministic Kind extraction, stop-word filtering, and multi-manifest retrieval across all connected MCP servers.
 - `POST /chat`: Query endpoint returning grounded answers, sources, and pipeline telemetry with optional Tri-MCP enrichment (`orchestrate_tri_mcp: true`).
 
 #### Consumption examples via cURL:
@@ -249,10 +249,10 @@ You can test the `POST /chat` endpoint directly from the UI.
 # Check status of all 3 connected MCP servers:
 curl -s http://localhost:8000/mcp/status | jq
 
-# Run diagnostics against all MCP servers:
+# Run diagnostics with natural language query (extracts Pod, pulls 3 canonical manifests, links CKA 3.5):
 curl -s -X POST http://localhost:8000/mcp/test \
   -H "Content-Type: application/json" \
-  -d '{"target": "all", "query": "admission"}' | jq
+  -d '{"target": "all", "query": "three example how i can create a pod yaml definition and a theory how works"}' | jq
 
 # Ask a question with full Tri-MCP orchestration:
 curl -s -X POST http://localhost:8000/chat \

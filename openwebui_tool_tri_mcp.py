@@ -74,3 +74,30 @@ class Tools:
             return f"Error {resp.status_code} al consultar estado: {resp.text}"
         except Exception as e:
             return f"Error al conectar con RAG Tutor Gateway: {str(e)}"
+
+    def test_mcp_integration(self, query: str = "pod") -> str:
+        """
+        Ejecuta una prueba diagnóstica en vivo sobre los tres MCP con cualquier consulta técnica o Kind.
+        :param query: Término de prueba (ej: 'pod', 'network policy', 'admission webhooks').
+        :return: Reporte de validación técnica con objetivos de examen y manifiestos encontrados.
+        """
+        url = f"{self.gateway_url}/mcp/test"
+        try:
+            resp = requests.post(url, json={"target": "all", "query": query}, timeout=15.0)
+            if resp.status_code == 200:
+                data = resp.json().get("diagnostic_results", {})
+                study = data.get("study_cybercirujas", {})
+                k8s = data.get("k8s_docs_mcp", {})
+                rag = data.get("rag_tutor", {})
+
+                report = [
+                    f"### 🧪 Diagnóstico Multi-MCP para: `{query}`\n",
+                    f"- **study-cybercirujas:** {study.get('status')} | Objetivo: `{study.get('matched_objective')}` ({study.get('certification')})",
+                    f"- **k8s-docs-mcp:** {k8s.get('status')} | Kind: `{k8s.get('detected_kind')}` | Manifiestos verificados: {k8s.get('manifests_count')}",
+                    f"- **rag-tutor:** {rag.get('status')} | Motor: `{rag.get('retriever_type')}` | Modelo: `{rag.get('ollama_model')}`"
+                ]
+                return "\n".join(report)
+            return f"Error {resp.status_code} al ejecutar test MCP: {resp.text}"
+        except Exception as e:
+            return f"Error al conectar con RAG Tutor Gateway: {str(e)}"
+

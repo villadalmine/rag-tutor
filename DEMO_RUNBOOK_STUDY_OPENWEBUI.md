@@ -234,6 +234,51 @@ class Tools:
             return f"Error {resp.status_code}: {resp.text}"
         except Exception as e:
             return f"Connection error with Gateway: {str(e)}"
+
+    def check_mcp_cluster_status(self) -> str:
+        """
+        Verifies the connection health of all 3 MCP servers.
+        :return: Markdown summary of server readiness.
+        """
+        url = f"{self.gateway_url}/mcp/status"
+        try:
+            resp = requests.get(url, timeout=10.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                servers = data.get("servers", {})
+                res = [f"### Tri-MCP Cluster Readiness (Operational: {data.get('tri_mcp_operational')})\n"]
+                for name, s in servers.items():
+                    res.append(f"- **{name}**: `{s.get('status')}` | Tools: [{', '.join(s.get('tools', []))}]")
+                return "\n".join(res)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Connection error: {str(e)}"
+
+    def test_mcp_integration(self, query: str = "pod") -> str:
+        """
+        Runs a live diagnostic test across all 3 MCP servers with any natural language query or resource Kind.
+        :param query: Technical query or prompt (e.g. 'pod', 'network policy', 'admission webhooks').
+        :return: Structured diagnostic report.
+        """
+        url = f"{self.gateway_url}/mcp/test"
+        try:
+            resp = requests.post(url, json={"target": "all", "query": query}, timeout=15.0)
+            if resp.status_code == 200:
+                data = resp.json().get("diagnostic_results", {})
+                study = data.get("study_cybercirujas", {})
+                k8s = data.get("k8s_docs_mcp", {})
+                rag = data.get("rag_tutor", {})
+
+                report = [
+                    f"### 🧪 Multi-MCP Diagnostic for: `{query}`\n",
+                    f"- **study-cybercirujas:** {study.get('status')} | Objective: `{study.get('matched_objective')}` ({study.get('certification')})",
+                    f"- **k8s-docs-mcp:** {k8s.get('status')} | Kind: `{k8s.get('detected_kind')}` | Verified Manifests: {k8s.get('manifests_count')}",
+                    f"- **rag-tutor:** {rag.get('status')} | Engine: `{rag.get('retriever_type')}` | Model: `{rag.get('ollama_model')}`"
+                ]
+                return "\n".join(report)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Connection error: {str(e)}"
 ```
 3. Click **Save**. You will see the tool listed as **`Cloud Native Tri-MCP Tutor`**.
 
@@ -269,10 +314,20 @@ You can showcase the Tri-MCP orchestration across three distinct interfaces:
 
 2. **Inspect the Tri-MCP Gateway API:**
    - **Health & Status:** [http://localhost:8000/mcp/status](http://localhost:8000/mcp/status)
-   - **Live Diagnostics via PowerShell:**
+   - **Live Diagnostics via PowerShell with Natural Language Extraction:**
      ```powershell
-     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body '{"target": "all", "query": "admission"}' | ConvertTo-Json -Depth 5
+     $body = @{
+       target = "all"
+       query = "three example how i can create a pod yaml definition and a theory how works"
+     } | ConvertTo-Json
+
+     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body $body | ConvertTo-Json -Depth 6
      ```
+     *Key Highlights to Explain during the Demo:*
+     1. **Deterministic Kind Extraction:** Identifies resource `Pod` despite conversational filler words (*three*, *example*, *how*, *create*, *theory*, *works*).
+     2. **Authoritative API Check & Multi-Manifest:** Confirms `v1` (STABLE) and injects 3 official manifests from `kubernetes.io` (single container with probes, multi-container sidecar logging, and Pod with ConfigMap/Secret env injection).
+     3. **Syllabus Grounding:** Matches `CKA 3.5 (Configure Pod admission and scheduling)` and confirms hands-on lab availability (`has_lab: true`).
+     4. **RAG Tutor Literature Engine:** Confirms hybrid vector + KùzuDB graph retriever readiness.
    - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs) (Click *Try it out* to execute tests from your browser).
 
 #### Option 2: From Open WebUI
