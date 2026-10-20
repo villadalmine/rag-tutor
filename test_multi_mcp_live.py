@@ -77,7 +77,7 @@ def call_cybercirujas_search(query: str):
         url = f"{base}/api/search?q={urllib.parse.quote(query)}&limit=3"
         req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=3) as response:
+            with urllib.request.urlopen(req, timeout=10) as response:
                 return json.loads(response.read().decode("utf-8"))
         except Exception:
             continue
@@ -95,7 +95,7 @@ def call_cybercirujas_topic(cert: str, topic_id: str, lang: str = "en"):
         url = f"{base}/api/certs/{cert}/topics/{topic_id}?lang={lang}"
         req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
         try:
-            with urllib.request.urlopen(req, timeout=3) as response:
+            with urllib.request.urlopen(req, timeout=10) as response:
                 return json.loads(response.read().decode("utf-8"))
         except Exception:
             continue
