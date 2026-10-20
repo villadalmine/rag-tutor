@@ -260,6 +260,156 @@ curl -s -X POST http://localhost:8000/chat \
   -d '{"question": "How do in-tree ValidatingAdmissionPolicies work in Kubernetes?", "orchestrate_tri_mcp": true}'
 ```
 
+---
+
+### Mode 4: Open WebUI Integration (Sovereign Web Chat)
+
+You can connect **Open WebUI** directly to the Tri-MCP sovereign gateway using the native Python Tools system.
+
+#### 1. Copy-Paste Tool Code for Open WebUI:
+In Open WebUI, navigate to: **Workspace ➔ Tools ➔ `+` (Create Tool)**, and paste:
+
+```python
+"""
+title: Cloud Native Tri-MCP Tutor
+author: Cybercirujas
+author_url: https://github.com/villadalmine/rag-tutor
+git_url: https://github.com/villadalmine/rag-tutor
+description: Consulta la Trifecta soberana (libros técnicos Manning, temarios oficiales CNCF/LPI y YAMLs canónicos de Kubernetes)
+version: 1.2.0
+license: Apache-2.0
+"""
+import json
+import requests
+from typing import Optional, Dict, Any
+
+class Tools:
+    def __init__(self):
+        # URL interna accesible desde el contenedor Docker de Open WebUI
+        self.gateway_url = "http://host.docker.internal:8000"
+
+    def query_tri_mcp_tutor(self, question: str) -> str:
+        """
+        HERRAMIENTA OBLIGATORIA: Consulta la Trifecta Soberana (study-cybercirujas + k8s-docs-mcp + rag-tutor).
+        Debes invocar esta herramienta SIEMPRE que el usuario pregunte sobre Kubernetes, Pods, Deployments,
+        servicios, arquitectura de plataformas, temarios CNCF (CKA, CKAD, CKS, CNPE) o sintaxis YAML.
+        :param question: La consulta técnica exacta a resolver.
+        :return: Síntesis técnica con tarjeta de verificación y fuentes oficiales citadas.
+        """
+        url = f"{self.gateway_url}/chat"
+        payload = {"question": question, "orchestrate_tri_mcp": True}
+        try:
+            resp = requests.post(url, json=payload, timeout=90.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                answer = data.get("answer", "")
+                sources = data.get("sources", [])
+                enrichment = data.get("mcp_enrichment", {})
+                
+                # Construir Tarjeta Visual de Verificación Tri-MCP
+                badge_lines = [
+                    "┌──────────────────────────────────────────────────────────────┐",
+                    "│ 🛡️  VERIFICACIÓN MULTI-MCP SOBERANA (TELEMETRÍA EN VIVO)     │",
+                    "├──────────────────────────────────────────────────────────────┤",
+                ]
+                obj = enrichment.get("study_objective") or "General Platform Context"
+                badge_lines.append(f"│ 🎯 Study-Cybercirujas: {obj[:46]:<46} │")
+                kind = enrichment.get("k8s_kind") or "Core Resource"
+                api_chk = enrichment.get("k8s_api_check") or "kubernetes.io canonical spec"
+                badge_lines.append(f"│ 🛡️ K8s-Docs-MCP:      {kind} ({api_chk[:30]:<30}) │")
+                retriever = data.get("retriever_engine", "hybrid")
+                llm = data.get("llm_model", "local-ollama")
+                badge_lines.append(f"│ 📚 RAG-Tutor Engine:  {retriever} ({llm}) on AMD Radeon GPU  │")
+                badge_lines.append("└──────────────────────────────────────────────────────────────┘")
+                badge_block = "```text\n" + "\n".join(badge_lines) + "\n```"
+
+                sources_block = ""
+                if sources:
+                    sources_list = "\n".join([f"- `{s}`" for s in sources])
+                    sources_block = f"\n\n### 📖 Fuentes Oficiales Consultadas:\n{sources_list}"
+
+                return f"{badge_block}\n\n{answer}{sources_block}"
+            return f"Error {resp.status_code} al consultar el tutor: {resp.text}"
+        except Exception as e:
+            return f"Error al conectar con RAG Tutor Gateway ({self.gateway_url}): {str(e)}"
+
+    def check_mcp_cluster_status(self) -> str:
+        """Verifica el estado de conexión de los 3 servidores MCP."""
+        url = f"{self.gateway_url}/mcp/status"
+        try:
+            resp = requests.get(url, timeout=10.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                servers = data.get("servers", {})
+                status_summary = [f"### Estado de la Trifecta MCP (Operativo: {data.get('tri_mcp_operational')})\n"]
+                for name, s in servers.items():
+                    mode_info = f" (Modo: {s.get('mode')})" if "mode" in s else ""
+                    tools_list = ", ".join(s.get("tools", []))
+                    status_summary.append(f"- **{name}**: `{s.get('status')}`{mode_info} | Tools: [{tools_list}]")
+                return "\n".join(status_summary)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Error al conectar: {str(e)}"
+```
+
+#### 2. Asignar la Herramienta a tu Modelo en Open WebUI:
+1. Ve a **Espacio de Trabajo (Workspace) ➔ Modelos (Models) ➔ `+` (Crear Modelo)**.
+2. Configura:
+   - **Nombre:** `Tutor Cloud Native (Tri-MCP)`
+   - **Modelo Base (desde):** Selecciona `qwen3:4b-fast` (ultra rápido en GPU) o `qwen2.5:7b`.
+   - **Prompt del Sistema:**
+     ```text
+     Eres un Arquitecto de Plataformas e Instructor Senior Cloud Native.
+     Tienes acceso a la herramienta 'Cloud Native Tri-MCP Tutor'.
+     Siempre que el usuario pregunte sobre Kubernetes, certificaciones (CKA, CKAD, CKS, CNPE),
+     arquitectura o manifiestos YAML, invoca 'query_tri_mcp_tutor' para validar tu respuesta
+     con fuentes oficiales y evitar cualquier alucinación de API.
+     ```
+   - **Herramientas (Tools):** Tilda la casilla **`Cloud Native Tri-MCP Tutor`**.
+3. Guarda el modelo.
+
+> [!IMPORTANT]
+> **Asegúrate de que la herramienta esté activa en el chat:**  
+> En la barra de entrada de texto inferior de Open WebUI, haz clic en el ícono de **Herramientas (Puzzle 🧩)** y confirma que **`Cloud Native Tri-MCP Tutor` esté activado (tildado)**. Si no está tildado, el modelo responderá sin llamar a la tool.
+> Puedes auditar en tiempo real qué consultas recibe el Gateway abriendo en tu navegador:
+> 👉 **[http://localhost:8000/mcp/logs](http://localhost:8000/mcp/logs)**
+
+---
+
+### Diagrama de Arquitectura del Flujo de Ejecución:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Usuario (Open WebUI)
+    participant UI as Open WebUI Tool (Python)
+    participant GW as RAG Tutor Gateway (:8000)
+    participant Study as study-cybercirujas (:8080)
+    participant K8s as k8s-docs-mcp (SQLite FTS5)
+    participant RAG as RAG Tutor Engine (Chroma + Kuzu)
+    participant GPU as Ollama (Radeon RX 6800 GPU)
+
+    User->>UI: Pregunta técnica (K8s / Arquitectura / CKA)
+    UI->>GW: POST /chat (orchestrate_tri_mcp=true)
+    
+    par Consulta Paralela Multi-MCP
+        GW->>Study: Búsqueda de temario y labs CNCF
+        Study-->>GW: Objetivo de certificación oficial
+    and
+        GW->>K8s: Validación API v1 y Manifiestos Canónicos
+        K8s-->>GW: YAMLs verificados kubernetes.io
+    and
+        GW->>RAG: Búsqueda Híbrida (Dense + BM25 + Kùzu)
+        RAG-->>GW: Chunks de libros Manning
+    end
+
+    GW->>GW: Cross-Encoder Reranking (ms-marco)
+    GW->>GPU: Prompt sintetizado con evidencia estricta
+    GPU-->>GW: Respuesta fundamentada (101.8 t/s)
+    GW-->>UI: Payload con Fuentes + Telemetría + Manifiestos
+    UI-->>User: Respuesta con Tarjeta Visual de Verificación Tri-MCP
+```
+
 > [!TIP]
 > Para ver la lista completa de comandos `curl`, validaciones de hardware (GPU vs CPU), guías de integración con Open WebUI y pasos de arranque desde cero, consulta el documento:
 > 👉 **[CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)**
