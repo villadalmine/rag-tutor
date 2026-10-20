@@ -47,6 +47,9 @@ La capacitación moderna en ingeniería de plataformas requiere tres capas sober
 | **`Open WebUI`** | Interfaz Unificada Soberana | Chat multi-agente, Herramientas OpenAPI y RAG | Web / HTTP | [http://localhost:3000](http://localhost:3000) |
 | **`Ollama`** | LLM Local y Embeddings | Pesos locales (`qwen2.5:7b`, `bge-m3`) | REST API | [http://localhost:11434](http://localhost:11434) |
 
+> [!TIP]
+> Para consultar rápidamente la lista completa de comandos cURL, pruebas de diagnóstico y verificación de hardware en un formato compacto, visita el **[Cheatsheet de Comandos (CHEATSHEET_DEMO_COMMANDS.md)](CHEATSHEET_DEMO_COMMANDS.md)**.
+
 ---
 
 ## ⚡ Dashboard de Servicios en Vivo (Pre-Inicializados)

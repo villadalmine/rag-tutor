@@ -260,6 +260,10 @@ curl -s -X POST http://localhost:8000/chat \
   -d '{"question": "How do in-tree ValidatingAdmissionPolicies work in Kubernetes?", "orchestrate_tri_mcp": true}'
 ```
 
+> [!TIP]
+> Para ver la lista completa de comandos `curl`, validaciones de hardware (GPU vs CPU), guías de integración con Open WebUI y pasos de arranque desde cero, consulta el documento:
+> 👉 **[CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)**
+
 ---
 
 ## Technologies & Upstream Repositories
