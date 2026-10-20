@@ -68,26 +68,38 @@ FALLBACK_TOPIC = {
 
 
 def call_cybercirujas_search(query: str):
-    """Simulates study-cybercirujas MCP tool: search_topics (with resilient network fallback)"""
-    url = f"https://study.cybercirujas.club/api/search?q={urllib.parse.quote(query)}&limit=3"
-    req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=5) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        print(f"  [Notice] Live API network timeout ({e}). Using verified cached syllabus...")
-        return {"hits": [FALLBACK_TOPIC]}
+    """Simulates study-cybercirujas MCP tool: search_topics (local first with resilient remote/cache fallback)"""
+    base_urls = [
+        os.getenv("STUDY_API_URL", "http://127.0.0.1:8080"),
+        "https://study.cybercirujas.club",
+    ]
+    for base in base_urls:
+        url = f"{base}/api/search?q={urllib.parse.quote(query)}&limit=3"
+        req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=3) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception:
+            continue
+    print("  [Notice] Study API unreachable. Using verified cached syllabus...")
+    return {"hits": [FALLBACK_TOPIC]}
 
 
 def call_cybercirujas_topic(cert: str, topic_id: str, lang: str = "en"):
-    """Simulates study-cybercirujas MCP tool: get_topic (with resilient network fallback)"""
-    url = f"https://study.cybercirujas.club/api/certs/{cert}/topics/{topic_id}?lang={lang}"
-    req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
-    try:
-        with urllib.request.urlopen(req, timeout=5) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except Exception as e:
-        return FALLBACK_TOPIC
+    """Simulates study-cybercirujas MCP tool: get_topic (local first with resilient remote/cache fallback)"""
+    base_urls = [
+        os.getenv("STUDY_API_URL", "http://127.0.0.1:8080"),
+        "https://study.cybercirujas.club",
+    ]
+    for base in base_urls:
+        url = f"{base}/api/certs/{cert}/topics/{topic_id}?lang={lang}"
+        req = urllib.request.Request(url, headers={"User-Agent": "rag-tutor-mcp-client/1.0"})
+        try:
+            with urllib.request.urlopen(req, timeout=3) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except Exception:
+            continue
+    return FALLBACK_TOPIC
 
 
 def run_tri_mcp_session():
