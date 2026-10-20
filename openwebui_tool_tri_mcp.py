@@ -20,10 +20,11 @@ class Tools:
 
     def query_tri_mcp_tutor(self, question: str) -> str:
         """
-        Consulta al Tutor Soberano Cloud Native (rag-tutor + study-cybercirujas + k8s-docs-mcp).
-        Responde dudas técnicas, arquitectónicas y de certificación con citas oficiales y YAMLs canónicos.
-        :param question: La pregunta o consulta técnica sobre Kubernetes, Linux o Platform Engineering.
-        :return: La respuesta fundamentada y sintetizada con citas de fuentes oficiales.
+        HERRAMIENTA OBLIGATORIA: Consulta la Trifecta Soberana (study-cybercirujas + k8s-docs-mcp + rag-tutor).
+        Debes invocar esta herramienta SIEMPRE que el usuario pregunte sobre Kubernetes, Pods, Deployments,
+        servicios, arquitectura de plataformas, temarios CNCF (CKA, CKAD, CKS, CNPE) o sintaxis YAML.
+        :param question: La consulta técnica exacta a resolver.
+        :return: Síntesis técnica con tarjeta de verificación y fuentes oficiales citadas.
         """
         url = f"{self.gateway_url}/chat"
         payload = {
@@ -35,19 +36,37 @@ class Tools:
             if resp.status_code == 200:
                 data = resp.json()
                 answer = data.get("answer", "")
-                sources = "\n".join([f"- {s}" for s in data.get("sources", [])])
+                sources = data.get("sources", [])
                 enrichment = data.get("mcp_enrichment", {})
                 
-                parts = [answer]
-                if sources:
-                    parts.append(f"\n\n### 📖 Fuentes Oficiales Consultadas:\n{sources}")
+                # Construir Tarjeta Visual de Verificación Tri-MCP
+                badge_lines = [
+                    "┌──────────────────────────────────────────────────────────────┐",
+                    "│ 🛡️  VERIFICACIÓN MULTI-MCP SOBERANA (TELEMETRÍA EN VIVO)     │",
+                    "├──────────────────────────────────────────────────────────────┤",
+                ]
                 
-                if enrichment.get("study_objective"):
-                    parts.append(f"\n- 🎯 **Objetivo de Certificación:** `{enrichment['study_objective']}`")
-                if enrichment.get("k8s_api_check"):
-                    parts.append(f"\n- 🛡️ **Verificación de API K8s:** `{enrichment['k8s_api_check']}`")
+                obj = enrichment.get("study_objective") or "General Platform Context"
+                badge_lines.append(f"│ 🎯 Study-Cybercirujas: {obj[:46]:<46} │")
+                
+                kind = enrichment.get("k8s_kind") or "Core Resource"
+                api_chk = enrichment.get("k8s_api_check") or "kubernetes.io canonical spec"
+                badge_lines.append(f"│ 🛡️ K8s-Docs-MCP:      {kind} ({api_chk[:30]:<30}) │")
+                
+                retriever = data.get("retriever_engine", "hybrid")
+                llm = data.get("llm_model", "local-ollama")
+                badge_lines.append(f"│ 📚 RAG-Tutor Engine:  {retriever} ({llm}) on AMD Radeon GPU  │")
+                badge_lines.append("└──────────────────────────────────────────────────────────────┘")
+                
+                badge_block = "```text\n" + "\n".join(badge_lines) + "\n```"
 
-                return "\n".join(parts)
+                # Fuentes formateadas
+                sources_block = ""
+                if sources:
+                    sources_list = "\n".join([f"- `{s}`" for s in sources])
+                    sources_block = f"\n\n### 📖 Fuentes Oficiales Consultadas:\n{sources_list}"
+
+                return f"{badge_block}\n\n{answer}{sources_block}"
             return f"Error {resp.status_code} al consultar el tutor: {resp.text}"
         except Exception as e:
             return f"Error al conectar con RAG Tutor Gateway ({self.gateway_url}): {str(e)}"

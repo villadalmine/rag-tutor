@@ -151,7 +151,23 @@ Invoke-RestMethod -Uri "http://localhost:8000/mcp/status" | ConvertTo-Json -Dept
 
 ---
 
-### 3.3 Pruebas de Diagnóstico en Vivo (`/mcp/test`)
+### 3.3 Historial y Logs de Auditoría en Vivo (`/mcp/logs`)
+
+Inspecciona en tiempo real las consultas que recibe el Gateway, qué herramientas se ejecutaron, la IP del cliente (Docker o localhost), y la latencia exacta en milisegundos:
+
+```bash
+# cURL
+curl -s http://localhost:8000/mcp/logs | jq
+```
+
+```powershell
+# PowerShell
+Invoke-RestMethod -Uri "http://localhost:8000/mcp/logs" | ConvertTo-Json -Depth 5
+```
+
+---
+
+### 3.4 Pruebas de Diagnóstico en Vivo (`/mcp/test`)
 
 El endpoint `/mcp/test` implementa **extracción determinística de Kinds de Kubernetes** y **filtrado de stop words conversacionales**, permitiendo ingresar preguntas en lenguaje natural tanto en inglés como en español.
 

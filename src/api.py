@@ -22,8 +22,26 @@ K8S_DOCS_SRC = ROOT_DIR.parent / "k8s-docs-mcp" / "src"
 if K8S_DOCS_SRC.exists() and str(K8S_DOCS_SRC) not in sys.path:
     sys.path.insert(0, str(K8S_DOCS_SRC))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
+import datetime
+import time
+
+AUDIT_LOGS: List[Dict[str, Any]] = []
+
+def _record_audit_log(endpoint: str, query: str, details: Dict[str, Any], client_ip: str = "unknown", latency_ms: float = 0.0):
+    entry = {
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+        "endpoint": endpoint,
+        "query": query,
+        "client_ip": client_ip,
+        "latency_ms": round(latency_ms, 2),
+        **details,
+    }
+    AUDIT_LOGS.insert(0, entry)
+    if len(AUDIT_LOGS) > 100:
+        AUDIT_LOGS.pop()
+
 
 from src import config
 from src.core import AgenticTutorCore
@@ -369,9 +387,20 @@ def mcp_status() -> Dict[str, Any]:
     }
 
 
+@app.get("/mcp/logs", tags=["Tri-MCP Gateway"])
+def get_mcp_logs(limit: int = 30) -> Dict[str, Any]:
+    """Historial en vivo de consultas, herramientas invocadas y auditoría de telemetría."""
+    return {
+        "total_recorded_events": len(AUDIT_LOGS),
+        "recent_events": AUDIT_LOGS[:limit],
+    }
+
+
 @app.post("/mcp/test", tags=["Tri-MCP Gateway"])
-def mcp_test(payload: McpTestRequest) -> Dict[str, Any]:
+def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
     """Ejecuta una prueba de diagnóstico en vivo sobre los servidores MCP."""
+    t0 = time.time()
+    client_ip = request.client.host if request.client else "unknown"
     results: Dict[str, Any] = {}
     detected_kind = _extract_k8s_kind(payload.query)
     clean_tokens = _clean_search_tokens(payload.query)
@@ -452,6 +481,20 @@ def mcp_test(payload: McpTestRequest) -> Dict[str, Any]:
             "pipeline_status": "Vector DB & Hybrid Reranking ready",
         }
 
+    duration = (time.time() - t0) * 1000.0
+    _record_audit_log(
+        endpoint="/mcp/test",
+        query=payload.query,
+        details={
+            "target": payload.target,
+            "detected_kind": detected_kind,
+            "study_matched": results.get("study_cybercirujas", {}).get("matched_objective"),
+            "k8s_manifests": results.get("k8s_docs_mcp", {}).get("manifests_count", 0),
+        },
+        client_ip=client_ip,
+        latency_ms=duration,
+    )
+
     return {
         "target": payload.target,
         "query": payload.query,
@@ -460,7 +503,7 @@ def mcp_test(payload: McpTestRequest) -> Dict[str, Any]:
 
 
 @app.post("/chat", response_model=QueryResponse, tags=["Chat & Orquestación"])
-def chat_endpoint(payload: QueryRequest):
+def chat_endpoint(payload: QueryRequest, request: Request):
     """Endpoint principal de consulta.
     
     Si `orchestrate_tri_mcp` es True, consulta automáticamente:
@@ -468,6 +511,9 @@ def chat_endpoint(payload: QueryRequest):
     2. `k8s-docs-mcp` para validar la versión de la API y extraer YAMLs oficiales.
     3. `rag-tutor` para sintetizar con los libros de arquitectura y el grafo KùzuDB.
     """
+    t0 = time.time()
+    client_ip = request.client.host if request.client else "unknown"
+
     if not payload.question.strip():
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
 
@@ -541,6 +587,22 @@ def chat_endpoint(payload: QueryRequest):
 
     # Ejecutar loop agéntico de RAG Tutor con los chunks combinados
     result = tutor.ask(payload.question, extra_chunks=extra_chunks if extra_chunks else None)
+    duration = (time.time() - t0) * 1000.0
+
+    _record_audit_log(
+        endpoint="/chat",
+        query=payload.question,
+        details={
+            "orchestrate_tri_mcp": payload.orchestrate_tri_mcp,
+            "study_objective": enrichment_metadata.get("study_objective"),
+            "k8s_kind": enrichment_metadata.get("k8s_kind"),
+            "manifest_injected": enrichment_metadata.get("k8s_manifest_injected", False),
+            "sources_count": len(result.get("sources", [])),
+            "retrieved_chunks": result.get("retrieved_chunks", 0),
+        },
+        client_ip=client_ip,
+        latency_ms=duration,
+    )
 
     return QueryResponse(
         answer=result["answer"],

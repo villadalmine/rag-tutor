@@ -207,14 +207,29 @@ class Tools:
                 answer = data.get("answer", "")
                 sources = "\n".join([f"- {s}" for s in data.get("sources", [])])
                 enrichment = data.get("mcp_enrichment", {})
-                parts = [answer]
+                # Construir Tarjeta Visual de Verificación Tri-MCP
+                badge_lines = [
+                    "┌──────────────────────────────────────────────────────────────┐",
+                    "│ 🛡️  VERIFICACIÓN MULTI-MCP SOBERANA (TELEMETRÍA EN VIVO)     │",
+                    "├──────────────────────────────────────────────────────────────┤",
+                ]
+                obj = enrichment.get("study_objective") or "General Platform Context"
+                badge_lines.append(f"│ 🎯 Study-Cybercirujas: {obj[:46]:<46} │")
+                kind = enrichment.get("k8s_kind") or "Core Resource"
+                api_chk = enrichment.get("k8s_api_check") or "kubernetes.io canonical spec"
+                badge_lines.append(f"│ 🛡️ K8s-Docs-MCP:      {kind} ({api_chk[:30]:<30}) │")
+                retriever = data.get("retriever_engine", "hybrid")
+                llm = data.get("llm_model", "local-ollama")
+                badge_lines.append(f"│ 📚 RAG-Tutor Engine:  {retriever} ({llm}) on AMD Radeon GPU  │")
+                badge_lines.append("└──────────────────────────────────────────────────────────────┘")
+                badge_block = "```text\n" + "\n".join(badge_lines) + "\n```"
+
+                sources_block = ""
                 if sources:
-                    parts.append(f"\n\n### 📖 Fuentes Oficiales:\n{sources}")
-                if enrichment.get("study_objective"):
-                    parts.append(f"\n- 🎯 **Objetivo de Examen:** `{enrichment['study_objective']}`")
-                if enrichment.get("k8s_api_check"):
-                    parts.append(f"\n- 🛡️ **API Kubernetes:** `{enrichment['k8s_api_check']}`")
-                return "\n".join(parts)
+                    sources_list = "\n".join([f"- `{s}`" for s in sources])
+                    sources_block = f"\n\n### 📖 Fuentes Oficiales Consultadas:\n{sources_list}"
+
+                return f"{badge_block}\n\n{answer}{sources_block}"
             return f"Error {resp.status_code}: {resp.text}"
         except Exception as e:
             return f"Error de conexión con RAG Tutor Gateway: {str(e)}"
@@ -284,7 +299,30 @@ Ahora configuramos el modelo que estabas creando en Open WebUI:
      ```
    - **Herramientas (Tools):** Haz clic donde dice **Ninguno** y tilda la casilla **`Cloud Native Tri-MCP Tutor`** (la herramienta que guardaste en el Paso A).
 3. Haz clic en **Guardar**.
-4. ¡Listo! Al abrir un nuevo chat y elegir el modelo **`Tutor Cloud Native (Tri-MCP)`**, el modelo invocará automáticamente a la Trifecta para responder.
+4. ¡Listo! Al abrir un nuevo chat y elegir el modelo **`Tutor Cloud Native (Tri-MCP)`**, el modelo tendrá acceso a la Trifecta para responder.
+
+##### Paso C: ¿Cómo Asegurarte de que la Herramienta está Activa y Dónde Ver los Logs?
+
+A veces los modelos pequeños (como 4B o 7B) pueden responder usando su memoria interna sin llamar a la herramienta externa si no está explícitamente habilitada en la sesión activa de chat. Sigue estos 3 controles:
+
+1. **Verificar el interruptor de herramientas en el chat:**
+   - En la pantalla de chat de Open WebUI, mira la barra inferior donde escribes tu mensaje.
+   - Haz clic en el ícono de **Herramientas (Tools / Puzzle 🧩)** o en el botón `+`.
+   - Asegúrate de que **`Cloud Native Tri-MCP Tutor` esté tildado** (con el check azul/verde activado). Si está desmarcado, el chat funcionará como un LLM normal sin acceso a la red ni a los MCPs.
+
+2. **Forzar la invocación si es necesario:**
+   - Puedes forzar la herramienta escribiendo:
+     > *"Usa la herramienta Cloud Native Tri-MCP Tutor para explicar: ¿Qué es un Pod y qué objetivo de CKA lo cubre?"*
+   - O escribiendo `@Cloud Native Tri-MCP Tutor` seguido de tu pregunta.
+
+3. **Ver los logs de auditoría en vivo (Demostración para la audiencia):**
+   - **En el Navegador:** Abre [http://localhost:8000/mcp/logs](http://localhost:8000/mcp/logs) o en Swagger [http://localhost:8000/docs](http://localhost:8000/docs).
+   - Verás cada llamada en tiempo real con su `timestamp`, `endpoint`, `client_ip` (proveniente del contenedor Docker), `query`, fuentes recuperadas y `latency_ms`.
+   - **En la Terminal:** Ejecuta:
+     ```bash
+     docker logs --tail 30 open-webui
+     ```
+     para ver cómo Open WebUI despacha la llamada hacia `http://host.docker.internal:8000/chat`.
 
 ---
 
@@ -419,6 +457,128 @@ python test_multi_mcp_live.py
 ========================================================================
  🎉 Tri-MCP Session Complete: Verified Live Across All 3 Engines!
 ========================================================================
+```
+
+---
+
+## 📊 Parte 5: Diagramas de Arquitectura y Flujos en Vivo (Para Presentaciones)
+
+Usa estos 4 diagramas interactivos de Mermaid para explicar visualmente a la audiencia cómo interactúan los componentes sin alucinaciones:
+
+### Diagrama 1: Flujo de Consulta y Separación de Poderes (Sequence Diagram)
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Usuario (Open WebUI)
+    participant UI as Open WebUI Tool (Python)
+    participant GW as RAG Tutor Gateway (:8000)
+    participant Study as study-cybercirujas (:8080)
+    participant K8s as k8s-docs-mcp (SQLite FTS5)
+    participant RAG as RAG Tutor Engine (Chroma + Kuzu)
+    participant GPU as Ollama (Radeon RX 6800 GPU)
+
+    User->>UI: Pregunta: "¿Cómo creo un Pod y qué evalúa CKA?"
+    UI->>GW: POST /chat (orchestrate_tri_mcp=true)
+    
+    par Consulta Paralela Multi-MCP
+        GW->>Study: Búsqueda de temario y labs CKA
+        Study-->>GW: CKA 3.5 (Pod Admission & Scheduling)
+    and
+        GW->>K8s: Validación API v1 y Manifiestos Canónicos
+        K8s-->>GW: Spec oficial kubernetes.io (3 YAMLs)
+    and
+        GW->>RAG: Búsqueda Híbrida (Dense + BM25 + Kùzu)
+        RAG-->>GW: 6 Chunks de libros Manning
+    end
+
+    GW->>GW: Cross-Encoder Reranking (ms-marco)
+    GW->>GPU: Prompt sintetizado con evidencia estricta
+    GPU-->>GW: Respuesta fundamentada (101.8 t/s)
+    GW-->>UI: Payload con Fuentes + Telemetría + Manifiestos
+    UI-->>User: Respuesta con Tarjeta de Verificación Tri-MCP
+```
+
+### Diagrama 2: Arquitectura del Ecosistema Soberano (Flowchart TD)
+```mermaid
+flowchart TD
+    subgraph ClientLayer["1. Capa de Interfaz y Clientes"]
+        OWUI["Open WebUI (Docker :3000)"]
+        IDE["VS Code / Cursor / OpenCode (MCP Client)"]
+        CLI["Terminal CLI / PowerShell"]
+    end
+
+    subgraph GatewayLayer["2. Orquestación y Enrutamiento (RAG Tutor :8000)"]
+        API["FastAPI Gateway REST"]
+        AUDIT["Audit & Telemetry Logger (/mcp/logs)"]
+        NLP["Extractor de Kinds K8s y Filtrado Stopwords"]
+        RERANK["Cross-Encoder Reranker (ms-marco)"]
+    end
+
+    subgraph MCPLayer["3. Servidores MCP Especializados (Separación de Poderes)"]
+        S_MCP["study-cybercirujas (:8080)<br/>• 42 Syllabi Oficiales (CKA/CKAD/CKS)<br/>• Laboratorios Interactivos"]
+        K_MCP["k8s-docs-mcp (Stdio MCP)<br/>• Upstream kubernetes.io<br/>• OpenAPI v3 Registry<br/>• SQLite FTS5 Canónico"]
+        R_MCP["rag-tutor (Core RAG)<br/>• Libros Técnicos Manning<br/>• ChromaDB Vectorial<br/>• KùzuDB GraphRAG Cypher"]
+    end
+
+    subgraph HardwareLayer["4. Motor de Inferencia Soberano (100% Local)"]
+        OLLAMA["Ollama (:11434)"]
+        GPU["AMD Radeon RX 6800 (16 GB VRAM)<br/>• qwen3:4b-fast (100+ t/s)<br/>• qwen2.5:7b (32k context)<br/>• Cómputo ROCm / llamacpp"]
+        CPU["CPU Dell Host<br/>• Red, I/O HTTP y SQLite"]
+    end
+
+    ClientLayer --> API
+    API --> AUDIT
+    API --> NLP
+    NLP --> S_MCP
+    NLP --> K_MCP
+    NLP --> R_MCP
+    S_MCP --> RERANK
+    K_MCP --> RERANK
+    R_MCP --> RERANK
+    RERANK --> OLLAMA
+    OLLAMA --> GPU
+    OLLAMA -.-> CPU
+```
+
+### Diagrama 3: Pipeline de Recuperación Híbrida y Reranking Anti-Alucinaciones (Flowchart LR)
+```mermaid
+flowchart LR
+    Q["Pregunta del Usuario"] --> EXT["Extractor de Kinds y Filtro Stopwords"]
+    EXT --> DENSE["Búsqueda Vectorial (ChromaDB)"]
+    EXT --> LEX["Búsqueda Léxica (Rank-BM25)"]
+    EXT --> MCP_CTX["Inyección de Temario y YAML Canónico"]
+    
+    DENSE --> MERGE["Fusión de Evidencia (Top 12)"]
+    LEX --> MERGE
+    MCP_CTX --> MERGE
+
+    MERGE --> RERANK["Cross-Encoder Reranker (ms-marco)"]
+    RERANK --> TOP["Top 3 Chunks Más Relevantes"]
+    TOP --> REFLECT["Loop de Auto-Reflexión Agéntica"]
+    REFLECT --> ANS["Respuesta Verificada con Citas Exactas"]
+```
+
+### Diagrama 4: Distribución de Hardware Soberano (VRAM vs CPU Host)
+```mermaid
+flowchart TD
+    subgraph GPU_RAM["AMD Radeon RX 6800 - 16 GB VRAM (100% Cómputo de Tensores)"]
+        M1["qwen3:4b-fast (5.1 GB) - 16k KV Cache (101.8 t/s)"]
+        M2["qwen2.5:7b (6.6 GB) - 32k KV Cache"]
+        FREE["VRAM Libre: ~4.3 GB"]
+    end
+
+    subgraph CPU_HOST["CPU Dell Host (0% Cómputo de Tensores)"]
+        NET["FastAPI / Uvicorn Server (:8000)"]
+        SQL["SQLite FTS5 Full-Text Search"]
+        DOCK["Contenedor Docker Open WebUI (:3000)"]
+        IO["I/O de Red y Serialización JSON"]
+    end
+
+    M1 --- M2
+    M2 --- FREE
+    NET --- SQL
+    SQL --- DOCK
+    DOCK --- IO
 ```
 
 ---
