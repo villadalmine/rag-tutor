@@ -132,21 +132,30 @@ Agrega el siguiente bloque a tu archivo `claude_desktop_config.json` o `.cursor/
 
 ---
 
-### Parte 3: Conexión con Open WebUI y Ollama
+### Parte 3: Conexión con Open WebUI, Ollama y Hardware (GPU vs CPU)
 
-Open WebUI ofrece una interfaz soberana para modelos locales, herramientas OpenAPI y agentes sin telemetría externa.
+Open WebUI ofrece una interfaz soberana para modelos locales, herramientas en Python y flujos multi-agente sin telemetría externa.
 
-#### 3.1 Verificación del Motor Ollama
-Ollama corre localmente en el puerto `11434`. Puedes verificarlo en tu navegador o terminal:
-- **API de Tags de Ollama:** [http://localhost:11434/api/tags](http://localhost:11434/api/tags)
+#### 3.1 Dónde corre Ollama: ¿GPU Radeon o CPU Dell?
+En tu equipo conviven dos procesadores: la CPU del sistema Dell y una GPU dedicada **AMD Radeon RX 6800 (16 GB VRAM)**.
 
+Ollama se ejecuta **100% acelerado por hardware en la GPU AMD Radeon RX 6800** mediante **AMD ROCm**:
+* **Memoria VRAM asignada:** ~14.19 GB offloaded directamente a la memoria de la placa de video (`size_vram: 14190452407`).
+* **Velocidad de generación:** ~11 tokens por segundo sobre modelos de 4B y 7B (`runner: llamacpp`).
+* **Rol de la CPU:** La CPU Dell únicamente atiende llamadas I/O de red y orquestación del sistema operativo, liberando completamente el cómputo de inferencia a la GPU.
+
+Puedes verificarlo en vivo ejecutando:
 ```bash
-curl -s http://localhost:11434/api/tags | jq '.models[].name'
+curl -s http://localhost:11434/api/ps | jq '.models[] | {name, size_vram, runner}'
 ```
-Modelos activos:
-- `qwen2.5:7b` (Razonamiento general y código técnico)
-- `qwen3:4b` / `llama3.2:3b` (Modelos ultraligeros)
-- `bge-m3:latest` (Embeddings densos multilingües)
+Salida verificada:
+```json
+{
+  "name": "qwen3:4b",
+  "size_vram": 14190452407,
+  "runner": "llamacpp"
+}
+```
 
 #### 3.2 Acceder a Open WebUI
 Haz clic para abrir la interfaz:  
@@ -155,64 +164,154 @@ Haz clic para abrir la interfaz:
 - Está configurado con `WEBUI_AUTH=False` (acceso directo sin login para facilitar presentaciones).
 - Detecta automáticamente los modelos de Ollama a través de `http://host.docker.internal:11434`.
 
-#### 3.3 Importar `rag-tutor` como Herramienta OpenAPI en Open WebUI
-1. En Open WebUI, ve a: **Workspace ➔ Tools ➔ `+` (Create Tool)**.
-2. Haz clic en los tres puntos `...` arriba a la derecha y selecciona **Import from OpenAPI**.
-3. Ingresa la URL interna del contenedor:
-   ```text
-   http://host.docker.internal:8000/openapi.json
-   ```
-4. Guarda la herramienta. Ahora cualquier modelo en Open WebUI puede invocar las funciones del tutor RAG y la orquestación Tri-MCP directamente desde la ventana de chat.
+---
+
+#### 3.3 Cómo conectar la Herramienta (Tool) en Open WebUI como Código Python
+
+En Open WebUI las herramientas personalizadas se crean como **clases de Python** con funciones documentadas (no requiriendo esquemas JSON manuales). Ya dejamos el código listo en el repositorio: [openwebui_tool_tri_mcp.py](openwebui_tool_tri_mcp.py).
+
+##### Paso A: Crear la Herramienta en Open WebUI
+1. En el menú lateral izquierdo, ve a **Espacio de Trabajo (Workspace) ➔ Herramientas (Tools)**.
+2. Haz clic en el botón **`+` (Crear Herramienta)**.
+3. Copia y pega el contenido completo del archivo [openwebui_tool_tri_mcp.py](openwebui_tool_tri_mcp.py):
+
+```python
+"""
+title: Cloud Native Tri-MCP Tutor
+author: Cybercirujas
+description: Consulta la Trifecta soberana (libros técnicos Manning, temarios oficiales CNCF y YAMLs de Kubernetes)
+version: 1.2.0
+"""
+import requests
+
+class Tools:
+    def __init__(self):
+        self.gateway_url = "http://host.docker.internal:8000"
+
+    def query_tri_mcp_tutor(self, question: str) -> str:
+        """
+        Consulta al Tutor Soberano Cloud Native (rag-tutor + study-cybercirujas + k8s-docs-mcp).
+        Responde dudas técnicas, arquitectónicas y de certificación con citas oficiales y YAMLs canónicos.
+        :param question: La pregunta técnica sobre Kubernetes, Linux o Platform Engineering.
+        :return: La respuesta fundamentada y sintetizada con citas de fuentes oficiales.
+        """
+        url = f"{self.gateway_url}/chat"
+        payload = {"question": question, "orchestrate_tri_mcp": True}
+        try:
+            resp = requests.post(url, json=payload, timeout=90.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                answer = data.get("answer", "")
+                sources = "\n".join([f"- {s}" for s in data.get("sources", [])])
+                enrichment = data.get("mcp_enrichment", {})
+                parts = [answer]
+                if sources:
+                    parts.append(f"\n\n### 📖 Fuentes Oficiales:\n{sources}")
+                if enrichment.get("study_objective"):
+                    parts.append(f"\n- 🎯 **Objetivo de Examen:** `{enrichment['study_objective']}`")
+                if enrichment.get("k8s_api_check"):
+                    parts.append(f"\n- 🛡️ **API Kubernetes:** `{enrichment['k8s_api_check']}`")
+                return "\n".join(parts)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Error de conexión con RAG Tutor Gateway: {str(e)}"
+
+    def check_mcp_cluster_status(self) -> str:
+        """
+        Verifica el estado de conexión de los 3 servidores MCP (study-cybercirujas, k8s-docs-mcp, rag-tutor).
+        :return: Resumen en texto del estado de cada servidor.
+        """
+        url = f"{self.gateway_url}/mcp/status"
+        try:
+            resp = requests.get(url, timeout=10.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                servers = data.get("servers", {})
+                res = [f"### Estado de la Trifecta MCP (Operativo: {data.get('tri_mcp_operational')})\n"]
+                for name, s in servers.items():
+                    res.append(f"- **{name}**: `{s.get('status')}` | Tools: [{', '.join(s.get('tools', []))}]")
+                return "\n".join(res)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Error de conexión con Gateway: {str(e)}"
+```
+4. Haz clic en **Guardar**. Verás la herramienta listada como **`Cloud Native Tri-MCP Tutor`**.
+
+##### Paso B: Asignar la Herramienta a tu Modelo Personalizado
+Ahora configuramos el modelo que estabas creando en Open WebUI:
+1. Ve a **Espacio de Trabajo (Workspace) ➔ Modelos (Models) ➔ `+` (Crear Modelo)**.
+2. Completa los campos:
+   - **Nombre:** `Tutor Cloud Native (Tri-MCP)`
+   - **Modelo Base (desde):** Selecciona `qwen2.5:7b` o `qwen3:4b`.
+   - **Descripción:** `Asistente especializado en arquitectura de plataformas, temarios CNCF y sintaxis oficial de Kubernetes.`
+   - **Prompt del sistema:**
+     ```text
+     Eres un Arquitecto de Plataformas e Instructor Senior Cloud Native.
+     Tienes a tu disposición la herramienta 'Cloud Native Tri-MCP Tutor'.
+     Siempre que el usuario haga preguntas sobre Kubernetes, certificaciones (CKA, CKAD, CKS, CNPE),
+     manifiestos YAML, arquitectura o ingeniería de plataformas, invoca 'query_tri_mcp_tutor'
+     para fundamentar tu respuesta en los temarios oficiales, las especificaciones de kubernetes.io
+     y los libros de ingeniería de plataformas.
+     ```
+   - **Herramientas (Tools):** Haz clic donde dice **Ninguno** y tilda la casilla **`Cloud Native Tri-MCP Tutor`** (la herramienta que guardaste en el Paso A).
+3. Haz clic en **Guardar**.
+4. ¡Listo! Al abrir un nuevo chat y elegir el modelo **`Tutor Cloud Native (Tri-MCP)`**, el modelo invocará automáticamente a la Trifecta para responder.
 
 ---
 
-### Parte 4: La API Gateway Tri-MCP de `rag-tutor`
+### Parte 4: Cómo Mostrar el Multi-MCP en 3 Entornos Diferentes
 
-Para evitar que la API REST sea solo un buscador de libros, `rag-tutor` implementa un **Gateway Unificado de Control Tri-MCP**:
+Puedes demostrar la coordinación de los 3 servidores MCP en cualquiera de estos 3 entornos:
 
-#### 4.1 Monitorear Estado de los 3 Servidores (`GET /mcp/status`)
-Abre en tu navegador o ejecuta con cURL:  
-👉 **[Ver Estado Tri-MCP (http://localhost:8000/mcp/status)](http://localhost:8000/mcp/status)**  
-👉 **[Swagger UI Interactivo (http://localhost:8000/docs)](http://localhost:8000/docs)**
+#### Opción 1: Desde la Terminal (Demostración Determinística Rápida)
+1. **Ejecutar la sesión interactiva en vivo:**
+   ```bash
+   python test_multi_mcp_live.py
+   ```
+   *Muestra en consola cómo el script consulta `study-cybercirujas` (temario CNPE 3.4), `k8s-docs-mcp` (validación de API y YAML de kubernetes.io) y `rag-tutor` (libros Manning + KùzuDB GraphRAG).*
 
-Respuesta en vivo que muestra los tres servidores sincronizados:
-```json
-{
-  "tri_mcp_operational": true,
-  "active_architecture": "The Cloud Native Trifecta (Study + K8s-Docs + RAG-Tutor)",
-  "servers": {
-    "study_cybercirujas": {
-      "status": "online",
-      "mode": "local",
-      "url": "http://127.0.0.1:8080",
-      "total_certifications": 42,
-      "tools": ["list_certs", "get_syllabus", "get_topic", "search_topics"]
-    },
-    "k8s_docs_mcp": {
-      "status": "online",
-      "store_populated": true,
-      "total_doc_sections": 5,
-      "total_manifests": 5,
-      "tools": ["search_k8s_docs", "get_canonical_manifest", "check_api_version"]
-    },
-    "rag_tutor": {
-      "status": "online",
-      "retriever_engine": "hybrid",
-      "vector_db": "ChromaDB",
-      "lexical_index": "BM25",
-      "graph_rag": "KùzuDB Cypher",
-      "tools": ["search_books", "kuzu_graph_traversal", "agentic_reasoning"]
+2. **Inspeccionar el Gateway Tri-MCP por cURL o Swagger:**
+   - **Estado de conexión:** [http://localhost:8000/mcp/status](http://localhost:8000/mcp/status)
+   - **Test de diagnóstico en vivo:**
+     ```powershell
+     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body '{"target": "all", "query": "admission"}' | ConvertTo-Json -Depth 5
+     ```
+   - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs) (permite hacer clic en *Try it out* y ejecutar diagnósticos desde el navegador).
+
+#### Opción 2: Desde la UI Web (Open WebUI)
+1. Abre [http://localhost:3000](http://localhost:3000).
+2. Selecciona tu modelo personalizado **`Tutor Cloud Native (Tri-MCP)`**.
+3. Escribe en el chat:
+   > *"¿Cómo implemento una ValidatingAdmissionPolicy en Kubernetes y qué ventajas tiene frente a un webhook tradicional?"*
+4. **Lo que ve la audiencia:** Verán el indicador de ejecución de la herramienta `query_tri_mcp_tutor`, extrayendo el contexto del temario de certificación y el YAML oficial, seguido de la respuesta con fuentes citadas.
+
+#### Opción 3: Desde Visual Studio Code, Cursor y OpenCode / opencodev2
+El repositorio incluye el archivo de configuración unificada [mcp_servers_config.json](mcp_servers_config.json) para clientes de desarrollo asistido por IA.
+
+Para conectar los 3 servidores en simultáneo:
+* **En Cursor:** Copia el contenido de [mcp_servers_config.json](mcp_servers_config.json) dentro de `.cursor/mcp.json`.
+* **En VS Code (con extensiones como Cline, Roo Code o Continue):** Ve a la configuración de MCP en la extensión y agrega los 3 servidores:
+  ```json
+  {
+    "mcpServers": {
+      "study-cybercirujas": {
+        "command": "python",
+        "args": ["-m", "teach.mcp_server"],
+        "cwd": "/path/to/study-cybercirujas"
+      },
+      "k8s-docs-mcp": {
+        "command": "uv",
+        "args": ["--directory", "/path/to/k8s-docs-mcp", "run", "k8s-docs-mcp"]
+      },
+      "rag-tutor": {
+        "command": "python",
+        "args": ["-m", "src.mcp_server"],
+        "cwd": "/path/to/rag-tutor"
+      }
     }
   }
-}
-```
-
-#### 4.2 Probar Diagnósticos en Vivo (`POST /mcp/test`)
-Desde la documentación Swagger o con PowerShell/cURL, puedes disparar tests contra los servidores:
-
-```powershell
-Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body '{"target": "all", "query": "admission"}' | ConvertTo-Json -Depth 5
-```
+  ```
+* **En OpenCode Interpreter / opencodev2:** Apunta a la misma lista de servidores MCP. El asistente en el IDE tendrá a su disposición las herramientas de temarios (`list_certs`, `get_syllabus`), documentación oficial (`search_k8s_docs`, `get_canonical_manifest`) y literatura técnica (`consultar_libros_manning`).
 
 Resultado verificado:
 - **`study_cybercirujas`:** Localiza el objetivo `CKA 3.5 (Configure Pod admission and scheduling)`.

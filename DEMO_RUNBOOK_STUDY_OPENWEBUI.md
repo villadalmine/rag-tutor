@@ -154,21 +154,30 @@ You can configure both [study-cybercirujas](https://github.com/villadalmine/stud
 
 ---
 
-### Part 3: Connecting Open WebUI and Ollama
+### Part 3: Connecting Open WebUI, Ollama, and Hardware (GPU vs CPU)
 
-Open WebUI provides a unified UI for local models, OpenAPI tools, and multi-agent workflows without cloud telemetry.
+Open WebUI provides a unified UI for local models, Python tools, and multi-agent workflows without cloud telemetry.
 
-#### 3.1 Verifying Ollama Engine
-Ollama runs locally on port `11434`. You can inspect available models via browser or curl:
-- **Ollama Tags API:** [http://localhost:11434/api/tags](http://localhost:11434/api/tags)
+#### 3.1 Where Does Ollama Run: Radeon GPU or Dell CPU?
+Your system features both a Dell host CPU and a dedicated **AMD Radeon RX 6800 (16 GB VRAM)** GPU.
 
+Ollama runs **100% hardware-accelerated on the AMD Radeon RX 6800 GPU** via **AMD ROCm**:
+* **Allocated VRAM:** ~14.19 GB offloaded directly to GPU memory (`size_vram: 14190452407`).
+* **Inference Speed:** ~11 tokens/second on 4B and 7B models (`runner: llamacpp`).
+* **Dell CPU Role:** The host CPU only handles OS orchestration, file I/O, and networking; all LLM matrix operations are computed on the Radeon GPU.
+
+You can verify hardware offloading live by running:
 ```bash
-curl -s http://localhost:11434/api/tags | jq '.models[].name'
+curl -s http://localhost:11434/api/ps | jq '.models[] | {name, size_vram, runner}'
 ```
-Expected output:
-- `qwen2.5:7b` (General reasoning & technical coding)
-- `qwen3:4b` / `llama3.2:3b` (Lightweight reasoning)
-- `bge-m3:latest` (Dense multilingual embeddings)
+Output:
+```json
+{
+  "name": "qwen3:4b",
+  "size_vram": 14190452407,
+  "runner": "llamacpp"
+}
+```
 
 #### 3.2 Accessing Open WebUI
 Click the link to open directly in your browser:
@@ -177,32 +186,127 @@ Click the link to open directly in your browser:
 - Open WebUI runs in Docker with `WEBUI_AUTH=False` (instant access, zero login hurdles for live demos).
 - The models from Ollama are detected automatically via `http://host.docker.internal:11434`.
 
-#### 3.3 Registering `rag-tutor` as an OpenAPI Tool in Open WebUI
-Open WebUI can directly call REST APIs that expose OpenAPI 3.0 specs:
-- **RAG Tutor OpenAPI Spec:** [http://localhost:8000/openapi.json](http://localhost:8000/openapi.json)
-- **RAG Tutor Swagger Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
+#### 3.3 Adding the Tri-MCP Tool in Open WebUI as Python Code
 
+In Open WebUI, tools are implemented as Python classes. The copy-pasteable script is saved in the repo at [openwebui_tool_tri_mcp.py](openwebui_tool_tri_mcp.py).
+
+##### Step A: Create the Tool in Open WebUI
 1. In Open WebUI, navigate to: **Workspace -> Tools -> `+` (Create Tool)**.
-2. Click on the three dots `...` in the top right or select **Import from OpenAPI**.
-3. Enter the internal container OpenAPI URL:
-   ```text
-   http://host.docker.internal:8000/openapi.json
-   ```
-4. Click **Import**. Open WebUI will register the `chat_endpoint` and `health_check` tools.
-5. In any chat session, enable the `rag-tutor` tool so that `qwen2.5:7b` can delegate complex technical and architectural questions to the local RAG engine!
+2. Copy and paste the contents of [openwebui_tool_tri_mcp.py](openwebui_tool_tri_mcp.py):
+
+```python
+"""
+title: Cloud Native Tri-MCP Tutor
+author: Cybercirujas
+description: Queries the sovereign Trifecta (Manning books, CNCF exam syllabi, and official Kubernetes YAMLs)
+version: 1.2.0
+"""
+import requests
+
+class Tools:
+    def __init__(self):
+        self.gateway_url = "http://host.docker.internal:8000"
+
+    def query_tri_mcp_tutor(self, question: str) -> str:
+        """
+        Queries the sovereign Cloud Native Tutor (rag-tutor + study-cybercirujas + k8s-docs-mcp).
+        Answers architecture, syllabus, and certification questions with official citations and canonical YAMLs.
+        :param question: The technical question about Kubernetes, Linux, or Platform Engineering.
+        :return: Grounded synthesis citing official sources.
+        """
+        url = f"{self.gateway_url}/chat"
+        payload = {"question": question, "orchestrate_tri_mcp": True}
+        try:
+            resp = requests.post(url, json=payload, timeout=90.0)
+            if resp.status_code == 200:
+                data = resp.json()
+                answer = data.get("answer", "")
+                sources = "\n".join([f"- {s}" for s in data.get("sources", [])])
+                enrichment = data.get("mcp_enrichment", {})
+                parts = [answer]
+                if sources:
+                    parts.append(f"\n\n### 📖 Official Sources Consulted:\n{sources}")
+                if enrichment.get("study_objective"):
+                    parts.append(f"\n- 🎯 **Exam Objective:** `{enrichment['study_objective']}`")
+                if enrichment.get("k8s_api_check"):
+                    parts.append(f"\n- 🛡️ **K8s API Check:** `{enrichment['k8s_api_check']}`")
+                return "\n".join(parts)
+            return f"Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            return f"Connection error with Gateway: {str(e)}"
+```
+3. Click **Save**. You will see the tool listed as **`Cloud Native Tri-MCP Tutor`**.
+
+##### Step B: Assign the Tool to a Custom Model
+1. Navigate to: **Workspace -> Models -> `+` (Create Model)**.
+2. Configure the fields:
+   - **Name:** `Cloud Native Tutor (Tri-MCP)`
+   - **Base Model (from):** Select `qwen2.5:7b` or `qwen3:4b`.
+   - **System Prompt:**
+     ```text
+     You are a Principal Platform Architect and Cloud Native Instructor.
+     You have access to the 'Cloud Native Tri-MCP Tutor' tool.
+     Whenever the engineer asks about Kubernetes, certifications (CKA, CKAD, CKS, CNPE),
+     YAML manifests, or platform engineering architecture, call 'query_tri_mcp_tutor'
+     to ground your answer on official CNCF syllabi, kubernetes.io specs, and Manning books.
+     ```
+   - **Tools (Herramientas):** Click on Tools (where it says "None") and check the box for **`Cloud Native Tri-MCP Tutor`**.
+3. Click **Save**.
+4. In any chat session, select your new model **`Cloud Native Tutor (Tri-MCP)`** and start asking questions!
 
 ---
 
-### Part 4: The Tri-MCP Live Orchestration Demo
+### Part 4: How to Demonstrate Multi-MCP in 3 Different Environments
 
-This is the centerpiece of the demonstration: showing how autonomous agents coordinate **all three MCP servers** simultaneously to produce an authoritative, hallucination-free answer.
+You can showcase the Tri-MCP orchestration across three distinct interfaces:
 
-#### 4.1 How Autonomous Routing Works (The 3 Questions)
-When an engineer asks:
-> *"How do in-tree ValidatingAdmissionPolicies (CEL) and admission webhooks enforce platform governance, and what are their architectural trade-offs?"*
+#### Option 1: From the Terminal (CLI & Diagnostics)
+1. **Run the Live Tri-MCP Verification Script:**
+   ```bash
+   python test_multi_mcp_live.py
+   ```
+   *Witness real-time coordination across `study-cybercirujas` (syllabus), `k8s-docs-mcp` (canonical manifest & API check), and `rag-tutor` (Manning books & KùzuDB GraphRAG).*
 
-The agent routes the query through the Trifecta:
-1. **Query `study-cybercirujas`**:
+2. **Inspect the Tri-MCP Gateway API:**
+   - **Health & Status:** [http://localhost:8000/mcp/status](http://localhost:8000/mcp/status)
+   - **Live Diagnostics via PowerShell:**
+     ```powershell
+     Invoke-RestMethod -Uri "http://localhost:8000/mcp/test" -Method POST -ContentType "application/json" -Body '{"target": "all", "query": "admission"}' | ConvertTo-Json -Depth 5
+     ```
+   - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs) (Click *Try it out* to execute tests from your browser).
+
+#### Option 2: From Open WebUI
+1. Open [http://localhost:3000](http://localhost:3000).
+2. Select the custom model **`Cloud Native Tutor (Tri-MCP)`**.
+3. Ask:
+   > *"How do in-tree ValidatingAdmissionPolicies (CEL) compare to admission webhooks for platform governance?"*
+4. Notice the tool execution widget triggering the Gateway and returning the synthesized answer with exact citations.
+
+#### Option 3: From Visual Studio Code, Cursor, and OpenCode / opencodev2
+Use the pre-configured [mcp_servers_config.json](mcp_servers_config.json) to connect all 3 servers simultaneously to your AI coding assistant:
+* **Cursor:** Copy the JSON into `.cursor/mcp.json`.
+* **VS Code (Cline / Roo Code / Continue):** Add the 3 servers to your extension's MCP settings:
+  ```json
+  {
+    "mcpServers": {
+      "study-cybercirujas": {
+        "command": "python",
+        "args": ["-m", "teach.mcp_server"],
+        "cwd": "/path/to/study-cybercirujas"
+      },
+      "k8s-docs-mcp": {
+        "command": "uv",
+        "args": ["--directory", "/path/to/k8s-docs-mcp", "run", "k8s-docs-mcp"]
+      },
+      "rag-tutor": {
+        "command": "python",
+        "args": ["-m", "src.mcp_server"],
+        "cwd": "/path/to/rag-tutor"
+      }
+    }
+  }
+  ```
+* **OpenCode / opencodev2:** Configure the same three entrypoints to grant the assistant access to syllabi, kubernetes.io docs, and engineering books.
    - *Question asked:* What is the official certification context and exam scope?
    - *Tool called:* `search_topics("admission controllers")` -> `get_topic("cnpe", "3.4")`.
    - *Result:* Retrieves CNPE Domain 3.4 objective, official LF curriculum, and break/fix lab.

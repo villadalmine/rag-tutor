@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "study-cybercirujas": {
+      "command": "python",
+      "args": ["-m", "teach.mcp_server"],
+      "cwd": "../study-cybercirujas",
+      "description": "Temarios oficiales de 38 certificaciones CNCF/LPI/LF y laboratorios break/fix on-demand"
+    },
+    "k8s-docs-mcp": {
+      "command": "uv",
+      "args": ["--directory", "../k8s-docs-mcp", "run", "k8s-docs-mcp"],
+      "description": "Especificación oficial de kubernetes.io, OpenAPI v3 y manifiestos YAML canónicos"
+    },
+    "rag-tutor": {
+      "command": "python",
+      "args": ["-m", "src.mcp_server"],
+      "cwd": ".",
+      "description": "Arquitectura de sistemas, ingeniería de plataformas y libros técnicos Manning (RAG híbrido + KùzuDB GraphRAG)"
+    }
+  }
+}
