@@ -48,7 +48,58 @@ class AgenticTutorCore:
             formatted.append(f"--- [Chunk {i} | Source: {citation}] ---\n{ch.content}")
         return "\n\n".join(formatted)
 
-    def ask(self, question: str, extra_chunks: Optional[List[RetrievedChunk]] = None) -> Dict[str, Any]:
+    def retrieve_only(
+        self,
+        question: str,
+        top_k: Optional[int] = None,
+        domain: Optional[str] = None,
+        code_lang: Optional[str] = None,
+        book: Optional[str] = None,
+        min_year: Optional[int] = None,
+        tag: Optional[str] = None,
+        section: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Executes deterministic retrieval (Hybrid + Reranker + KùzuDB Graph) WITHOUT requiring an LLM (Ollama).
+
+        Ideal for automated tests, CI pipelines, and token-efficient MCP retrieval.
+        """
+        k = top_k or config.TOP_K_FINAL
+        chunks = self.retriever.retrieve(
+            question,
+            top_k=k,
+            domain=domain,
+            code_lang=code_lang,
+            book=book,
+            min_year=min_year,
+            tag=tag,
+            section=section,
+        )
+        sources = list(dict.fromkeys([c.to_citation() for c in chunks]))
+        formatted_context = self._format_context(chunks)
+        return {
+            "answer": formatted_context,
+            "chunks": chunks,
+            "sources": sources,
+            "iterations": 1,
+            "retrieved_chunks": len(chunks),
+            "retriever_engine": config.RETRIEVER_TYPE,
+            "llm_model": "none (retrieve-only / LLM-free mode)",
+            "embedding_model": config.EMBEDDING_MODEL_NAME,
+            "reranker_model": config.RERANKER_MODEL_NAME,
+        }
+
+    def ask(
+        self,
+        question: str,
+        extra_chunks: Optional[List[RetrievedChunk]] = None,
+        domain: Optional[str] = None,
+        code_lang: Optional[str] = None,
+        book: Optional[str] = None,
+        min_year: Optional[int] = None,
+        tag: Optional[str] = None,
+        section: Optional[str] = None,
+        no_llm: bool = False,
+    ) -> Dict[str, Any]:
         """Executes the agentic grounded technical reasoning loop.
 
         Workflow:
@@ -56,16 +107,30 @@ class AgenticTutorCore:
         2. LLM sufficiency self-evaluation (verifying commands, manifests, and concepts).
         3. Secondary complementary retrieval pass if technical gaps are identified.
         4. Rigorous technical response generation with exact citations.
+        (If no_llm=True or Ollama is unreachable, falls back cleanly to deterministic retrieval).
         """
-        if not self._llm:
-            return {
-                "answer": "Error: Local LLM engine (Ollama) is unavailable. Please run 'ollama serve'.",
-                "sources": [],
-                "iterations": 0,
-            }
+        if no_llm or not self._llm:
+            return self.retrieve_only(
+                question,
+                domain=domain,
+                code_lang=code_lang,
+                book=book,
+                min_year=min_year,
+                tag=tag,
+                section=section,
+            )
 
         # Step 1: Initial retrieval
-        retrieved_chunks = self.retriever.retrieve(question, top_k=config.TOP_K_RETRIEVAL)
+        retrieved_chunks = self.retriever.retrieve(
+            question,
+            top_k=config.TOP_K_RETRIEVAL,
+            domain=domain,
+            code_lang=code_lang,
+            book=book,
+            min_year=min_year,
+            tag=tag,
+            section=section,
+        )
         chunks = (extra_chunks or []) + retrieved_chunks
         iterations = 1
 
@@ -97,7 +162,16 @@ NEED_MORE_INFO: [exact concept, command, or YAML manifest to search]"""
                     sub_query = eval_res.split(trigger_key)[1].strip()
                     if sub_query:
                         # Step 3: Targeted complementary retrieval
-                        extra_retrieved = self.retriever.retrieve(sub_query, top_k=2)
+                        extra_retrieved = self.retriever.retrieve(
+                            sub_query,
+                            top_k=2,
+                            domain=domain,
+                            code_lang=code_lang,
+                            book=book,
+                            min_year=min_year,
+                            tag=tag,
+                            section=section,
+                        )
                         existing_contents = {c.content for c in chunks}
                         for ec in extra_retrieved:
                             if ec.content not in existing_contents:
@@ -105,7 +179,16 @@ NEED_MORE_INFO: [exact concept, command, or YAML manifest to search]"""
                                 existing_contents.add(ec.content)
                         iterations = 2
             except Exception as e:
-                print(f"[Warning in agentic evaluation]: {e}")
+                print(f"[Warning in agentic evaluation ({e}) — falling back to LLM-free retrieval]")
+                return self.retrieve_only(
+                    question,
+                    domain=domain,
+                    code_lang=code_lang,
+                    book=book,
+                    min_year=min_year,
+                    tag=tag,
+                    section=section,
+                )
 
         # Step 4: Final grounded synthesis
         total_k = config.TOP_K_FINAL + (len(extra_chunks) if extra_chunks else 0)
@@ -126,7 +209,19 @@ Engineer's Question:
 
 Detailed Technical Answer:"""
 
-        response = self._llm.invoke(system_prompt)
+        try:
+            response = self._llm.invoke(system_prompt)
+        except Exception as e:
+            print(f"[Warning: Ollama LLM not reachable ({e}) — returning retrieved context directly]")
+            return self.retrieve_only(
+                question,
+                domain=domain,
+                code_lang=code_lang,
+                book=book,
+                min_year=min_year,
+                tag=tag,
+                section=section,
+            )
         sources = list(dict.fromkeys([c.to_citation() for c in chunks[:total_k]]))
 
         return {

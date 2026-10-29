@@ -204,18 +204,110 @@ The auto-generated configuration file follows this standard declarative schema:
 }
 ```
 
-### Key Benefits:
-1. **Zero-Touch Autonomy:** If the file does not exist, `python src/ingest.py` creates it automatically.
-2. **Auditability & Customization:** If you wish to rename a tag or reassign a book to another category, simply edit the JSON string; the system respects user overrides on subsequent runs.
-3. **Version Control Friendly:** Can be committed to Git so your entire team shares identical search filters.
+### Key Benefits & How to Update / Override Categories If Needed:
+1. **Zero-Touch Autonomy:** If `metadata_registry.json` does not exist, `python src/ingest.py` creates it automatically, assigning primary `domain`, `secondary_domains` (for cross-disciplinary books like *Generative AI on Kubernetes* that span `cloud_native` and `mlops`), `tags` (plural-tolerant), `publication_year`, and the `sections` tree.
+2. **How to Inspect Categories & Sections from the CLI:**
+   ```bash
+   python src/cli.py --list-books
+   ```
+3. **How to Update / Override Categories If One Is Wrong (2 Ways):**
+   - **Method A — Via CLI (1 command, automatic persistence):**
+     ```bash
+     python src/cli.py \
+       --set-book "building-ai-agents-with-llms-rag-and-knowledge-graphs" \
+       --set-domain ai_agents \
+       --set-tags "agent,llm,rag,knowledge_graph,mlops" \
+       --set-year 2025
+     ```
+     This automatically sets `"auto_generated": false` in `metadata_registry.json` so future runs of `python src/ingest.py` **never overwrite your manual customization**.
+   - **Method B — Editing `metadata_registry.json` directly:**
+     Open `metadata_registry.json`, change `"domain"`, `"tags"`, or `"publication_year"`, and set `"auto_generated": false`. Then run `python src/ingest.py --force` if you want ChromaDB and BM25 chunks to re-sync with your updated metadata.
+4. **Version Control Friendly:** Can be committed to Git so your entire team shares identical search filters.
 
 ---
 
-## 6. Summary of Benefits
+## 6. Scaling to 100+ Books in MCP Without Burning Context Tokens (SQL-Style `WHERE` Filtering)
+
+When an AI agent (Claude, Cursor, Antigravity, Open WebUI) connects via MCP to a library of **100+ technical books**, returning full books or unfiltered chunks quickly exhausts the context window and mixes outdated APIs with modern ones.
+
+To solve this, `rag-tutor` separates responsibility across **3 architectural layers**:
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ LAYER 1: METADATA ENGINE (At Ingestion Time - `src/metadata_engine.py`)              │
+│ • Extracts `publication_year` (Copyright © YYYY, Publication Date, Edition)          │
+│ • Classifies `domain` (cloud_native, mlops, ai_agents, databases_and_storage, etc.)  │
+│ • Extracts `tags` (kubernetes, vllm, rag, inference, helm, prometheus, etc.)         │
+│ • Builds hierarchical `sections` tree (Chapter -> H2/H3 topics)                      │
+│ • Tags every chunk with `section_title`, `has_code`, `code_lang`, `publication_year` │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ LAYER 2: RETRIEVER & MCP TOOLS (`WHERE` Pre-Filtering - `src/mcp_server.py`)         │
+│ • `listar_libros_y_secciones(domain, min_year, tag)`:                                │
+│     Returns ONLY the compact catalog & chapter tree (~300 tokens instead of 5M).     │
+│ • `buscar_fragmentos_secciones(consulta, min_year, domain, tag, seccion, code_lang)`:│
+│     Executes SQL-like `WHERE` pre-filtering in ChromaDB + BM25 + Cross-Encoder:      │
+│     WHERE publication_year >= 2024 AND domain = 'cloud_native' AND tag LIKE '%vllm%' │
+├──────────────────────────────────────────────────────────────────────────────────────┤
+│ LAYER 3: AGENT SKILL / SYSTEM PROMPT (Decision Policy)                               │
+│ • Instructs the agent:                                                               │
+│   1) Call `listar_libros_y_secciones` first to check book years and chapter names.   │
+│   2) Pass `min_year=2024` (or `2025` for LLM/K8s topics) + `domain` + `tag`/`seccion`│
+│      into `buscar_fragmentos_secciones` to retrieve only 3-4 surgical chunks.        │
+└──────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 7. Running and Testing Without an LLM (No Ollama Required)
+
+All metadata profiling, hybrid retrieval (ChromaDB + BM25), Cross-Encoder reranking (`ms-marco-MiniLM-L-6-v2`), and KùzuDB Cypher graph traversal work **100% deterministically without requiring a local LLM (Ollama)**.
+
+### A. CLI in `--no-llm` (`--retrieve-only`) Mode
+```bash
+# Query with WHERE filters without needing Ollama running:
+python src/cli.py "How to serve LLMs with vLLM on Kubernetes?" \
+  --no-llm \
+  --domain cloud_native \
+  --min-year 2025 \
+  --tag kubernetes \
+  --section "Chapter 3"
+
+# Extract only YAML manifests from books published in 2024+:
+python src/cli.py "apiVersion apps/v1 kind Deployment" \
+  --no-llm \
+  --code yaml \
+  --min-year 2024
+```
+
+### B. Python API (`tutor.retrieve_only`)
+```python
+from src.core import AgenticTutorCore
+
+tutor = AgenticTutorCore()
+result = tutor.retrieve_only(
+    "vLLM GPU deployment on Kubernetes",
+    top_k=3,
+    domain="cloud_native",
+    min_year=2025,
+    tag="kubernetes",
+    section="Deploying Models",
+)
+for chunk in result["chunks"]:
+    print(chunk.to_citation(), chunk.score)
+```
+
+### C. Automated End-to-End Test Suite (Zero LLM Dependency)
+```bash
+python tests/test_no_llm_pipeline.py
+```
+
+---
+
+## 8. Summary of Benefits
 
 | Feature | Standard Naive RAG | RAG Tutor Universal Metadata |
 | :--- | :--- | :--- |
-| **Code Retrieval** | Theoretical paragraphs dilute code snippets. | Filters strictly for `has_code=True` and `code_lang="yaml"`. |
-| **Polysemous Words** | "Pipeline" confuses CI/CD with MLOps and Stream processing. | `domain="cloud_native"` isolates the intended context with 100% precision. |
-| **Retrieval Latency** | Calculates Euclidean distances across 25k+ chunks. | ChromaDB pre-filters scalar metadata, searching < 5k chunks in < 5 ms. |
-| **User Overhead** | High manual curation required. | **Zero** (lexical profiling and syntax detection run automatically). |
+| **Multi-Format Input** | PDFs only. | `.pdf`, `.md` folders, `.txt`, `.json`, `.jsonl` (skips `.epub` / `.xhtml` duplicates). |
+| **Obsolescence Control** | Mixes 2018 deprecated APIs with 2026 specs. | Auto-detects `publication_year` and filters via `--min-year` / `min_year`. |
+| **MCP Token Efficiency** | Dumps massive chunks into agent context. | Progressive section index + `WHERE` filters (`domain`, `tag`, `section`, `code_lang`). |
+| **LLM-Free Verification** | Crashes if Ollama/OpenAI is offline. | `--no-llm` CLI flag, `retrieve_only()` API, and `tests/test_no_llm_pipeline.py`. |

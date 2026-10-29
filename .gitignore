@@ -23,21 +23,25 @@ wheels/
 .installed.cfg
 *.egg
 
-# Entornos virtuales
+# Virtual environments
 venv/
 .venv/
 
-# Datos del RAG y modelos locales
+# Local RAG indexes, generated catalogs, and embedded databases
+# (Never commit private book inventories, SHA-256 manifests, or vector/graph stores)
 chroma_db/
 bm25_index.pkl
 *.lance/
 data/kuzu_db*
+data/.ingestion_manifest.json
+metadata_registry.json
+knowledge_graph.json
 
-# Libros (para no versionar PDFs pesados con derechos de autor)
-books/*.pdf
+# Books (keep user documents/books out of version control)
+books/*
 !books/.gitkeep
 
-# IDEs y SO
+# IDEs & OS
 .vscode/
 .idea/
 .DS_Store

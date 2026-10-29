@@ -9,7 +9,7 @@ Agnostic, sovereign local AI tutor for technical books (Software Engineering, Ku
 
 It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the comprehensive strategic & LLM-free usage guide in **[STRATEGIC_GUIDE_AND_USAGE.md](STRATEGIC_GUIDE_AND_USAGE.md)**, the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -143,14 +143,51 @@ If no token is set, warnings are automatically suppressed and execution runs sil
    pip install -r requirements.txt
    ```
 
-3. **Place your technical books (Any topic / vendor):**
-   - Copy your `.pdf` files into the `books/` folder. The system is agnostic and will auto-classify them.
+3. **Place your technical books (Any format / topic / vendor):**
+   - Copy your `.pdf`, `.md` (or book folders containing `Markdown/*.md`), `.txt`, `.json`, or `.jsonl` files into the `books/` folder. The system is 100% standalone, auto-extracts the **publication year (`publication_year`)**, **domain**, **tags**, and **chapter/section tree (`sections`)**, and automatically ignores `.epub` or raw `OEBPS/*.xhtml` duplicates when Markdown is present.
 
 4. **Run ingestion and indexing:**
    ```bash
    python src/ingest.py
    ```
-   *(Subsequent runs only process newly added books incrementally).*
+   *(Subsequent runs only process newly added or modified books incrementally via SHA-256).*
+
+---
+
+## Running & Automated Testing WITHOUT an LLM (No Ollama Required)
+
+You can use and test the entire ingestion, metadata `WHERE`-filtering, Hybrid retrieval (ChromaDB + BM25), Cross-Encoder reranking, KùzuDB GraphRAG, and MCP tools **without having Ollama or any LLM installed**:
+
+### 1. Run the Automated Verification Suite
+```bash
+python tests/test_no_llm_pipeline.py
+```
+
+### 2. Query via CLI with `--no-llm` (`--retrieve-only`) and SQL-like `WHERE` Filters
+```bash
+# Retrieve top reranked sections with WHERE filters (no LLM needed):
+python src/cli.py "How to serve LLMs with vLLM on Kubernetes?" \
+  --no-llm \
+  --domain cloud_native \
+  --min-year 2025 \
+  --tag kubernetes \
+  --section "Chapter"
+
+# Filter strictly by code language (yaml, python, go, bash, sql, rust):
+python src/cli.py "Deployment resource limits GPU" \
+  --no-llm \
+  --code yaml \
+  --min-year 2024
+```
+
+### 3. Direct MCP Tool Invocation (Zero-Token-Burn for 100+ Books)
+```bash
+python -c "
+from src.mcp_server import listar_libros_y_secciones, buscar_fragmentos_secciones
+print(listar_libros_y_secciones(domain='cloud_native', min_year=2025))
+print(buscar_fragmentos_secciones('vLLM Kubernetes', top_k=2, domain='cloud_native', min_year=2025, tag='kubernetes'))
+"
+```
 
 ---
 
@@ -202,10 +239,16 @@ python src/mcp_server.py
 ```
 
 #### Exposed Tools:
-1. `consultar_libros_manning(pregunta: str) -> str`:
-   - Runs hybrid retrieval and triggers the agentic reflection loop with Ollama to return a grounded synthesis with exact page citations.
-2. `buscar_codigo_yaml(termino: str) -> str`:
-   - Direct lexical retrieval for exact YAML manifests, CRDs, CLI commands, and Go snippets without LLM alteration.
+1. `listar_libros_y_secciones(domain, min_year, tag, incluir_secciones) -> str`:
+   - Returns the compact book catalog with publication year (`publication_year`), domain, tags, and chapter/section tree without burning tokens on full book contents.
+2. `buscar_fragmentos_secciones(consulta, top_k, domain, code_lang, libro, min_year, tag, seccion) -> str`:
+   - Retrieves only the top-K relevant chunks with SQL-like `WHERE` pre-filters (`min_year`, `domain`, `tag`, `seccion`, `code_lang`, `libro`), requiring zero Ollama LLM overhead.
+3. `consultar_grafo_kuzu(concepto: str) -> str`:
+   - Queries the embedded KùzuDB Knowledge Graph via Cypher to inspect ontological relationships across books, domains, and technical concepts.
+4. `consultar_libros_manning(pregunta: str, domain, code_lang, libro, min_year) -> str`:
+   - Runs hybrid/graph retrieval and triggers the agentic reflection loop with Ollama to return a grounded synthesis with exact citations.
+5. `buscar_codigo_yaml(termino: str, code_lang, min_year) -> str`:
+   - Direct lexical retrieval for exact YAML manifests, CRDs, CLI commands, and code snippets without LLM alteration.
 
 #### Claude Desktop / Goose CLI integration (`claude_desktop_config.json`):
 ```json

@@ -41,6 +41,9 @@ class OmnigraphRetriever(BaseRetriever):
 
     def check_connection(self) -> bool:
         """Checks if the remote Omnigraph daemon/container is reachable via HTTP."""
+        import os
+        if os.getenv("ENABLE_REMOTE_OMNIGRAPH", "0") != "1":
+            return False
         try:
             resp = requests.get(f"{self.api_url}/health", timeout=1.5)
             return resp.status_code == 200
@@ -127,7 +130,17 @@ class OmnigraphRetriever(BaseRetriever):
             "relations": relations_summary[:6],
         }
 
-    def retrieve(self, query: str, top_k: int = 4) -> List[RetrievedChunk]:
+    def retrieve(
+        self,
+        query: str,
+        top_k: int = 4,
+        domain: Optional[str] = None,
+        code_lang: Optional[str] = None,
+        book: Optional[str] = None,
+        min_year: Optional[int] = None,
+        tag: Optional[str] = None,
+        section: Optional[str] = None,
+    ) -> List[RetrievedChunk]:
         """Executes Phase 2 retrieval (Graph Ontology + Vector / Lexical Search)."""
         # 1. If Omnigraph daemon is running, prioritize remote query
         if self.check_connection():
@@ -135,8 +148,17 @@ class OmnigraphRetriever(BaseRetriever):
             if remote_results:
                 return remote_results
 
-        # 2. Local Graph Engine (In-Memory GraphRAG)
-        base_chunks = self.hybrid_fallback.retrieve(query, top_k=top_k * 2)
+        # 2. Local Graph Engine (In-Memory / KùzuDB GraphRAG)
+        base_chunks = self.hybrid_fallback.retrieve(
+            query,
+            top_k=top_k * 2,
+            domain=domain,
+            code_lang=code_lang,
+            book=book,
+            min_year=min_year,
+            tag=tag,
+            section=section,
+        )
         if not base_chunks:
             return []
 

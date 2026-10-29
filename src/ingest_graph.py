@@ -5,8 +5,11 @@ NOTE: This file provides a structural template. Users can adapt or replace these
 and relations according to their own technical books and domain needs.
 """
 
+import json
+import re
 import sys
 from pathlib import Path
+from typing import Any, Dict, List
 
 # Configure UTF-8 encoding on Windows console
 if sys.stdout:
@@ -20,6 +23,7 @@ if str(ROOT_DIR) not in sys.path:
 
 from src import config
 from src.graph_schema import GraphEdge, GraphNode, KnowledgeGraph
+from src.kuzu_graph import KuzuGraphEngine
 
 
 def build_platform_knowledge_graph() -> KnowledgeGraph:
@@ -166,14 +170,99 @@ def build_platform_knowledge_graph() -> KnowledgeGraph:
     return kg
 
 
+def enrich_graph_from_corpus(
+    kg: KnowledgeGraph,
+    corpus: List[Dict[str, Any]],
+    catalog: Dict[str, Any],
+) -> KnowledgeGraph:
+    """Dynamically enriches the ontological graph with real indexed books, domains, and concepts."""
+    # 1. Create nodes for each book and its domain
+    for book_name, meta in catalog.items():
+        book_id = "book-" + re.sub(r"[^a-z0-9]+", "-", book_name.lower()).strip("-")[:50]
+        domain = meta.get("domain", "general_technical")
+        domain_id = "domain-" + domain.replace("_", "-")
+        tags = meta.get("tags", [])
+
+        if domain_id not in kg.nodes:
+            kg.add_node(
+                GraphNode(
+                    id=domain_id,
+                    label="Discipline",
+                    name=domain.replace("_", " ").title(),
+                    description=f"Technical engineering domain: {domain}",
+                )
+            )
+
+        kg.add_node(
+            GraphNode(
+                id=book_id,
+                label="Book",
+                name=book_name,
+                description=f"Technical reference book in domain '{domain}' covering {', '.join(tags)}.",
+                properties={"domain": domain, "tags": tags},
+            )
+        )
+        kg.add_edge(GraphEdge(source=book_id, target=domain_id, relation="BELONGS_TO_DOMAIN"))
+
+        for tag in tags:
+            tag_id = re.sub(r"[^a-z0-9]+", "-", tag.lower()).strip("-")
+            if not tag_id:
+                continue
+            if tag_id not in kg.nodes:
+                kg.add_node(
+                    GraphNode(
+                        id=tag_id,
+                        label="Concept",
+                        name=tag.replace("_", " ").title(),
+                        description=f"Core technical concept extracted from {book_name}.",
+                    )
+                )
+            kg.add_edge(GraphEdge(source=book_id, target=tag_id, relation="COVERS_CONCEPT"))
+
+    # 2. Link real chunks to graph nodes when they mention the concept
+    existing_edges = {(e.source, e.target, e.relation) for e in kg.edges}
+    for idx, item in enumerate(corpus):
+        content_lower = item.get("content", "").lower()
+        source_book = item.get("source", "")
+        book_id = "book-" + re.sub(r"[^a-z0-9]+", "-", source_book.lower()).strip("-")[:50]
+        chunk_id = f"chunk-{idx}"
+
+        for node_id, node in list(kg.nodes.items()):
+            if node.label == "Book":
+                continue
+            if node.name.lower() in content_lower or node_id.replace("-", " ") in content_lower:
+                if len(node.chunk_ids) < 25 and chunk_id not in node.chunk_ids:
+                    node.chunk_ids.append(chunk_id)
+                if book_id in kg.nodes and (book_id, node_id, "EXPLAINS") not in existing_edges:
+                    kg.add_edge(GraphEdge(source=book_id, target=node_id, relation="EXPLAINS"))
+                    existing_edges.add((book_id, node_id, "EXPLAINS"))
+
+    return kg
+
+
+def sync_graph_and_kuzu(
+    corpus: List[Dict[str, Any]] | None = None,
+    catalog: Dict[str, Any] | None = None,
+) -> KnowledgeGraph:
+    """Builds the ontological graph, enriches it with the real corpus, saves JSON, and syncs KùzuDB."""
+    kg = build_platform_knowledge_graph()
+    if corpus is not None and catalog is not None:
+        kg = enrich_graph_from_corpus(kg, corpus, catalog)
+
+    kg.save(config.GRAPH_DATA_PATH)
+    kuzu_engine = KuzuGraphEngine()
+    if kuzu_engine.available:
+        kuzu_engine.sync_from_knowledge_graph(kg, clear_existing=True)
+    return kg
+
+
 def run_graph_ingestion():
     """Generates and persists the knowledge graph for Phase 2."""
     print("=" * 65)
     print(" 🕸️  Starting Ontological Graph Ingestion (Phase 2: GraphRAG)")
     print("=" * 65)
 
-    kg = build_platform_knowledge_graph()
-    kg.save(config.GRAPH_DATA_PATH)
+    kg = sync_graph_and_kuzu()
 
     print(f"\n[OK] Knowledge graph generated and saved at:")
     print(f"     {config.GRAPH_DATA_PATH}")
@@ -184,9 +273,9 @@ def run_graph_ingestion():
         print(f"    • [{n.label}] {n.name}: {n.description[:60]}...")
 
     print("\n" + "=" * 65)
-    print(" 🎉 Phase 2 (GraphRAG / Omnigraph) Ready!")
+    print(" 🎉 Phase 2 (GraphRAG / Omnigraph + KùzuDB) Ready!")
     print(" To activate GraphRAG by default, set:")
-    print("   $env:RETRIEVER_TYPE = 'omnigraph'")
+    print("   export RETRIEVER_TYPE=omnigraph")
     print("=" * 65)
 
 
