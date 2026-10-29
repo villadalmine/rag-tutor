@@ -2,7 +2,7 @@
 
 > **Complete Live Demo & Deployment Runbook**  
 > Step-by-step walkthrough to run, demonstrate, and orchestrate **study-cybercirujas**, **k8s-docs-mcp**, **rag-tutor**, **Ollama**, and **Open WebUI** in a 100% sovereign, local-first platform engineering environment without external cloud dependencies.  
-> 🇪🇸 *Versión en español disponible en:* [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md)  
+> 📐 *Strategic Architecture & Use Cases:* [STRATEGIC_GUIDE_AND_USAGE.md](STRATEGIC_GUIDE_AND_USAGE.md)  
 > 🇬🇧 *Standard English Runbook:* [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md)  
 > 📖 *Non-technical terminology guide:* [GLOSSARY.md](GLOSSARY.md)  
 > ⚡ *Quick cURL & command reference:* [CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)
@@ -119,7 +119,15 @@ The platform exposes its entire curriculum through the standard **Model Context 
 3. `get_topic(cert, topic, lang)`: Delivers verified theory, authoritative references, and break/fix lab scripts.
 4. `search_topics(query, cert)`: Fast lexical search across titles, domains, and objectives.
 
-#### 2.2 Adding `teach.mcp_server` to Claude Desktop or Cursor
+#### 2.2 The `rag-tutor` MCP Server (`src.mcp_server`) — 5 Progressive Zero-Token-Burn Tools
+`rag-tutor` exposes 5 progressive tools designed to save 85%+ of your agent's context window:
+1. `listar_libros_y_secciones(domain, min_year, tag)`: Lists indexed books, detected domains, publication years, tags, and chapter hierarchies before pulling full text.
+2. `buscar_fragmentos_secciones(pregunta, book, domain, min_year, tag, section, code_lang, k)`: Fast LLM-free (`--no-llm`) hybrid search + Cross-Encoder reranking + KùzuDB Cypher GraphRAG with SQL-like `WHERE` pre-filters (~400ms latency).
+3. `consultar_grafo_kuzu(entidad, domain)`: Directly queries the embedded KùzuDB Cypher property graph (`Entity` and `RELATES` tables) for multi-hop architectural relationships.
+4. `consultar_libros_manning(pregunta, modo, domain, book, min_year, tag, section)`: Full local RAG synthesis with optional agentic self-reflection.
+5. `buscar_codigo_yaml(recurso, domain, code_lang, min_year)`: Searches specifically for verified code blocks (`yaml`, `python`, `go`, `hcl`, `bash`) using AST-aware metadata filters.
+
+#### 2.3 Adding All 3 MCP Servers to Claude Desktop, Cursor, or Antigravity
 Add the following block to your `claude_desktop_config.json` or `.cursor/mcp.json`:
 
 ```json
@@ -133,6 +141,11 @@ Add the following block to your `claude_desktop_config.json` or `.cursor/mcp.jso
     "k8s-docs-mcp": {
       "command": "uv",
       "args": ["--directory", "/path/to/k8s-docs-mcp", "run", "k8s-docs-mcp"]
+    },
+    "rag-tutor": {
+      "command": "/path/to/rag-tutor/.venv/bin/python",
+      "args": ["-m", "src.mcp_server"],
+      "cwd": "/path/to/rag-tutor"
     }
   }
 }
@@ -334,12 +347,23 @@ Small models (such as 4B or 7B) may occasionally rely on internal parameters ins
 
 Showcase Tri-MCP coordination across three distinct environments:
 
-#### Option 1: From the Terminal (Deterministic CLI Demo)
-1. **Run the Live Interactive Session:**
+#### Option 1: From the Terminal (Deterministic CLI Demo & Test Suite)
+1. **Run the Automated 8-Test Verification Suite (`--no-llm`):**
+   ```bash
+   .venv/bin/python tests/test_no_llm_pipeline.py
+   ```
+   *Verifies Universal Metadata classification, SQL-like `WHERE` pre-filtering, Hybrid + Cross-Encoder retrieval, KùzuDB Cypher GraphRAG, and all 5 MCP tools in seconds.*
+
+2. **Run Instant LLM-Free Retrieval (`--no-llm`) with SQL-like `WHERE` Pre-Filters:**
+   ```bash
+   python -m src.query "SeccompProfile PodSecurity" --no-llm --domain cloud_native_k8s --min-year 2024 --k 3
+   ```
+
+3. **Run the Live Interactive Tri-MCP Session:**
    ```bash
    python test_multi_mcp_live.py
    ```
-   *Demonstrates console-level coordination across `study-cybercirujas` (CNPE 3.4 syllabus), `k8s-docs-mcp` (API check & canonical manifest), and `rag-tutor` (Manning books & KùzuDB GraphRAG).*
+   *Demonstrates console-level coordination across `study-cybercirujas` (CNPE 3.4 syllabus), `k8s-docs-mcp` (API check & canonical manifest), and `rag-tutor` (Technical books & KùzuDB GraphRAG).*
 
 2. **Inspect the Tri-MCP Gateway API via cURL / Swagger:**
    - **Cluster Health:** [http://localhost:8000/mcp/status](http://localhost:8000/mcp/status)

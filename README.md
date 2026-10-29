@@ -9,7 +9,7 @@ Agnostic, sovereign local AI tutor for technical books (Software Engineering, Ku
 
 It implements a **hybrid retrieval architecture (Vector + BM25 with Cross-Encoder Reranker)**, a **lightweight agentic self-reflection loop**, and **dual exposure (MCP Server + REST API)**, architecturally decoupled to iteratively scale into **Omnigraph (GraphRAG)**.
 
-Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the comprehensive strategic & LLM-free usage guide in **[STRATEGIC_GUIDE_AND_USAGE.md](STRATEGIC_GUIDE_AND_USAGE.md)**, the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbooks in [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md) (EN) and [DEMO_RUNBOOK_ES.md](DEMO_RUNBOOK_ES.md) (ES), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
+Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md), the comprehensive strategic & LLM-free usage guide in **[STRATEGIC_GUIDE_AND_USAGE.md](STRATEGIC_GUIDE_AND_USAGE.md)**, the universal metadata engine in [METADATA_SYSTEM.md](METADATA_SYSTEM.md), the open certifications multi-MCP integration in [CERTIFICATION_TUTOR_MCP.md](CERTIFICATION_TUTOR_MCP.md), the complete live demo runbook in [DEMO_RUNBOOK_EN.md](DEMO_RUNBOOK_EN.md), the command cheatsheet in [CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md), the real use cases and setup walkthrough in [USE_CASES_AND_EXAMPLES.md](USE_CASES_AND_EXAMPLES.md), the AI disclosure and guardrails in [AI_DISCLOSURE_AND_GUARDRAILS.md](AI_DISCLOSURE_AND_GUARDRAILS.md), and reproducible empirical tests in [VERIFICATION_TESTS.md](VERIFICATION_TESTS.md).
 
 ---
 
@@ -17,34 +17,39 @@ Consult the architectural decision record in [ARCHITECTURE.md](ARCHITECTURE.md),
 
 ```text
 rag-tutor/
-├── books/                     # Place your own PDF books here (empty by default)
+├── books/                     # Place your technical books/folders here (git-ignored)
 │   └── .gitkeep
-├── chroma_db/                 # Persistent vector database (ChromaDB)
-├── bm25_index.pkl             # Inverted BM25 lexical index for exact code tokens
-├── knowledge_graph.json       # Ontological graph of concepts and relations (Phase 2)
+├── chroma_db/                 # Persistent vector database (ChromaDB, git-ignored)
+├── bm25_index.pkl             # Inverted BM25 lexical index for exact code tokens (git-ignored)
+├── data/kuzu_db/              # Embedded KùzuDB property graph database (git-ignored)
 ├── docker-compose.yml         # Optional container for Omnigraph lakehouse daemon
 ├── src/
 │   ├── __init__.py
-│   ├── config.py              # Centralized configuration and engine selector
-│   ├── core.py                # Agentic Tutor Core with self-reflection loop
-│   ├── cli.py                 # Interactive and single-query command-line interface
-│   ├── ingest.py              # Incremental PDF ingestion with SHA-256 change detection
-│   ├── ingest_graph.py        # GraphRAG knowledge graph ingestion (Phase 2)
+│   ├── config.py              # Centralized configuration and engine selector (default: omnigraph)
+│   ├── core.py                # Agentic Tutor Core with self-reflection loop & retrieve_only mode
+│   ├── cli.py                 # CLI with SQL-like WHERE filters (--min-year, --domain, --tag, --no-llm)
+│   ├── ingest.py              # Multi-format incremental ingestion with 3-layer SHA-256 deduplication
+│   ├── ingest_graph.py        # Dynamic GraphRAG & KùzuDB ontology builder (Phase 2)
+│   ├── metadata_engine.py     # Universal deterministic profiler (year, domain, tags, sections, syntax)
 │   ├── graph_schema.py        # Schema of nodes and edges for the knowledge graph
 │   ├── kuzu_graph.py          # Embedded KùzuDB Cypher query engine for GraphRAG
 │   ├── schemas.py             # Pydantic contract schemas for syllabus and external MCPs
-│   ├── mcp_server.py          # Model Context Protocol server (FastMCP / MCPServer)
-│   ├── api.py                 # FastAPI REST API for Web interfaces / Open WebUI
+│   ├── mcp_server.py          # Progressive Zero-Token-Burn MCP server (5 specialized tools)
+│   ├── api.py                 # FastAPI REST API & Tri-MCP Gateway with WHERE filter support
 │   └── retrievers/
 │       ├── __init__.py
 │       ├── base.py            # Abstract BaseRetriever and RetrievedChunk interfaces
-│       ├── hybrid.py          # Phase 1: ChromaDB + BM25 + Cross-Encoder Reranker
-│       └── omnigraph.py       # Phase 2: KùzuDB Cypher + Omnigraph connector
+│       ├── hybrid.py          # Phase 1: ChromaDB + BM25 + Cross-Encoder Reranker + WHERE filters
+│       └── omnigraph.py       # Phase 2: KùzuDB Cypher + Hybrid + Cross-Encoder Reranker
+├── tests/
+│   └── test_no_llm_pipeline.py # Automated end-to-end test suite (Zero LLM / No Ollama required)
 ├── requirements.txt           # Python dependencies
 ├── test_multi_mcp_live.py     # Live Tri-MCP verification (study-cybercirujas + k8s-docs-mcp + rag-tutor)
-├── DEMO_RUNBOOK_EN.md         # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP (English)
-├── DEMO_RUNBOOK_ES.md         # Guía de demostración completa en español con diagramas y enlaces interactivos
+├── STRATEGIC_GUIDE_AND_USAGE.md # Complete operational guide, KùzuDB breakdown & architecture patterns
+├── DEMO_RUNBOOK_EN.md         # Live demo runbook: Study platform, Open WebUI, Ollama & Tri-MCP
 ├── DEMO_RUNBOOK_STUDY_OPENWEBUI.md # Direct alias for DEMO_RUNBOOK_EN.md
+├── CHEATSHEET_DEMO_COMMANDS.md # Quick reference for CLI, cURL, MCP & hardware checks
+├── GLOSSARY.md                # Educational technology glossary with real-world analogies
 ├── ARCHITECTURE.md            # Architecture Decision Records (ADRs) and roadmap
 ├── METADATA_SYSTEM.md         # Universal zero-config metadata engine documentation
 ├── CERTIFICATION_TUTOR_MCP.md # Open WebUI + MCP integration with study-cybercirujas
@@ -311,7 +316,7 @@ curl -s -X POST http://localhost:8000/chat \
 You can connect **Open WebUI** directly to the Tri-MCP sovereign gateway using the native Python Tools system.
 
 #### 1. Copy-Paste Tool Code for Open WebUI:
-In Open WebUI, navigate to: **Workspace ➔ Tools ➔ `+` (Create Tool)**, and paste:
+In Open WebUI, navigate to: **Workspace ➔ Tools ➔ `+` (Create Tool)**, and paste the contents of [`openwebui_tool_tri_mcp.py`](openwebui_tool_tri_mcp.py):
 
 ```python
 """
@@ -319,8 +324,8 @@ title: Cloud Native Tri-MCP Tutor
 author: Cybercirujas
 author_url: https://github.com/villadalmine/rag-tutor
 git_url: https://github.com/villadalmine/rag-tutor
-description: Consulta la Trifecta soberana (libros técnicos Manning, temarios oficiales CNCF/LPI y YAMLs canónicos de Kubernetes)
-version: 1.2.0
+description: Queries the Sovereign Tri-MCP Stack (technical engineering books, official CNCF/LPI syllabi, and canonical Kubernetes YAMLs)
+version: 1.3.0
 license: Apache-2.0
 """
 import json
@@ -329,19 +334,31 @@ from typing import Optional, Dict, Any
 
 class Tools:
     def __init__(self):
-        # URL interna accesible desde el contenedor Docker de Open WebUI
+        # Internal URL reachable from the Open WebUI Docker container
         self.gateway_url = "http://host.docker.internal:8000"
 
-    def query_tri_mcp_tutor(self, question: str) -> str:
+    def query_tri_mcp_tutor(
+        self,
+        question: str,
+        domain: Optional[str] = None,
+        min_year: Optional[int] = None,
+    ) -> str:
         """
-        HERRAMIENTA OBLIGATORIA: Consulta la Trifecta Soberana (study-cybercirujas + k8s-docs-mcp + rag-tutor).
-        Debes invocar esta herramienta SIEMPRE que el usuario pregunte sobre Kubernetes, Pods, Deployments,
-        servicios, arquitectura de plataformas, temarios CNCF (CKA, CKAD, CKS, CNPE) o sintaxis YAML.
-        :param question: La consulta técnica exacta a resolver.
-        :return: Síntesis técnica con tarjeta de verificación y fuentes oficiales citadas.
+        MANDATORY TOOL: Queries the Sovereign Trifecta (study-cybercirujas + k8s-docs-mcp + rag-tutor).
+        Always invoke this tool whenever the user asks about Kubernetes, Pods, Deployments,
+        services, platform architecture, AI agents, CNCF syllabi (CKA, CKAD, CKS, CNPE), or YAML syntax.
+        :param question: Exact technical question to resolve.
+        :param domain: Optional domain filter (e.g. 'cloud_native', 'ai_agents', 'mlops').
+        :param min_year: Optional minimum publication year (e.g. 2024 or 2025).
+        :return: Grounded technical synthesis with verification badge and cited sources.
         """
         url = f"{self.gateway_url}/chat"
-        payload = {"question": question, "orchestrate_tri_mcp": True}
+        payload = {
+            "question": question,
+            "orchestrate_tri_mcp": True,
+            "domain": domain,
+            "min_year": min_year,
+        }
         try:
             resp = requests.post(url, json=payload, timeout=90.0)
             if resp.status_code == 200:
@@ -349,11 +366,11 @@ class Tools:
                 answer = data.get("answer", "")
                 sources = data.get("sources", [])
                 enrichment = data.get("mcp_enrichment", {})
-                
-                # Construir Tarjeta Visual de Verificación Tri-MCP
+
+                # Build Visual Tri-MCP Verification Badge
                 badge_lines = [
                     "┌──────────────────────────────────────────────────────────────┐",
-                    "│ 🛡️  VERIFICACIÓN MULTI-MCP SOBERANA (TELEMETRÍA EN VIVO)     │",
+                    "│ 🛡️  SOVEREIGN MULTI-MCP VERIFICATION (LIVE TELEMETRY)        │",
                     "├──────────────────────────────────────────────────────────────┤",
                 ]
                 obj = enrichment.get("study_objective") or "General Platform Context"
@@ -361,102 +378,102 @@ class Tools:
                 kind = enrichment.get("k8s_kind") or "Core Resource"
                 api_chk = enrichment.get("k8s_api_check") or "kubernetes.io canonical spec"
                 badge_lines.append(f"│ 🛡️ K8s-Docs-MCP:      {kind} ({api_chk[:30]:<30}) │")
-                retriever = data.get("retriever_engine", "hybrid")
+                retriever = data.get("retriever_engine", "omnigraph")
                 llm = data.get("llm_model", "local-ollama")
-                badge_lines.append(f"│ 📚 RAG-Tutor Engine:  {retriever} ({llm}) on AMD Radeon GPU  │")
+                badge_lines.append(f"│ 📚 RAG-Tutor Engine:  {retriever} ({llm})                     │")
                 badge_lines.append("└──────────────────────────────────────────────────────────────┘")
                 badge_block = "```text\n" + "\n".join(badge_lines) + "\n```"
 
                 sources_block = ""
                 if sources:
                     sources_list = "\n".join([f"- `{s}`" for s in sources])
-                    sources_block = f"\n\n### 📖 Fuentes Oficiales Consultadas:\n{sources_list}"
+                    sources_block = f"\n\n### 📖 Consulted Sources:\n{sources_list}"
 
                 return f"{badge_block}\n\n{answer}{sources_block}"
-            return f"Error {resp.status_code} al consultar el tutor: {resp.text}"
+            return f"Error {resp.status_code} querying tutor: {resp.text}"
         except Exception as e:
-            return f"Error al conectar con RAG Tutor Gateway ({self.gateway_url}): {str(e)}"
+            return f"Error connecting to RAG Tutor Gateway ({self.gateway_url}): {str(e)}"
 
     def check_mcp_cluster_status(self) -> str:
-        """Verifica el estado de conexión de los 3 servidores MCP."""
+        """Checks the live connection status of all 3 MCP servers."""
         url = f"{self.gateway_url}/mcp/status"
         try:
             resp = requests.get(url, timeout=10.0)
             if resp.status_code == 200:
                 data = resp.json()
                 servers = data.get("servers", {})
-                status_summary = [f"### Estado de la Trifecta MCP (Operativo: {data.get('tri_mcp_operational')})\n"]
+                status_summary = [f"### Tri-MCP Cluster Status (Operational: {data.get('tri_mcp_operational')})\n"]
                 for name, s in servers.items():
-                    mode_info = f" (Modo: {s.get('mode')})" if "mode" in s else ""
+                    mode_info = f" (Mode: {s.get('mode')})" if "mode" in s else ""
                     tools_list = ", ".join(s.get("tools", []))
                     status_summary.append(f"- **{name}**: `{s.get('status')}`{mode_info} | Tools: [{tools_list}]")
                 return "\n".join(status_summary)
             return f"Error {resp.status_code}: {resp.text}"
         except Exception as e:
-            return f"Error al conectar: {str(e)}"
+            return f"Connection error: {str(e)}"
 ```
 
-#### 2. Asignar la Herramienta a tu Modelo en Open WebUI:
-1. Ve a **Espacio de Trabajo (Workspace) ➔ Modelos (Models) ➔ `+` (Crear Modelo)**.
-2. Configura:
-   - **Nombre:** `Tutor Cloud Native (Tri-MCP)`
-   - **Modelo Base (desde):** Selecciona `qwen3:4b-fast` (ultra rápido en GPU) o `qwen2.5:7b`.
-   - **Prompt del Sistema:**
+#### 2. Assign the Tool to Your Model in Open WebUI:
+1. Navigate to **Workspace ➔ Models ➔ `+` (Create Model)**.
+2. Configure:
+   - **Name:** `Cloud Native Tutor (Tri-MCP)`
+   - **Base Model:** Select `qwen3:4b-fast` or `qwen2.5:7b`.
+   - **System Prompt:**
      ```text
-     Eres un Arquitecto de Plataformas e Instructor Senior Cloud Native.
-     Tienes acceso a la herramienta 'Cloud Native Tri-MCP Tutor'.
-     Siempre que el usuario pregunte sobre Kubernetes, certificaciones (CKA, CKAD, CKS, CNPE),
-     arquitectura o manifiestos YAML, invoca 'query_tri_mcp_tutor' para validar tu respuesta
-     con fuentes oficiales y evitar cualquier alucinación de API.
+     You are a Principal Platform Architect and Senior Cloud-Native Instructor.
+     You have access to the 'Cloud Native Tri-MCP Tutor' tool.
+     Whenever the user asks about Kubernetes, certifications (CKA, CKAD, CKS, CNPE),
+     AI agents, platform architecture, or YAML manifests, invoke 'query_tri_mcp_tutor'
+     to ground your answer in official sources and prevent API hallucinations.
      ```
-   - **Herramientas (Tools):** Tilda la casilla **`Cloud Native Tri-MCP Tutor`**.
-3. Guarda el modelo.
+   - **Tools:** Check the **`Cloud Native Tri-MCP Tutor`** box.
+3. Save the model.
 
 > [!IMPORTANT]
-> **Asegúrate de que la herramienta esté activa en el chat:**  
-> En la barra de entrada de texto inferior de Open WebUI, haz clic en el ícono de **Herramientas (Puzzle 🧩)** y confirma que **`Cloud Native Tri-MCP Tutor` esté activado (tildado)**. Si no está tildado, el modelo responderá sin llamar a la tool.
-> Puedes auditar en tiempo real qué consultas recibe el Gateway abriendo en tu navegador:
+> **Ensure the tool is toggled ON in the chat:**  
+> In the bottom chat input bar of Open WebUI, click the **Tools (Puzzle 🧩)** icon and confirm **`Cloud Native Tri-MCP Tutor` is enabled**. If it is unchecked, the model will respond without invoking the tool.
+> You can audit live queries received by the Gateway in your browser at:
 > 👉 **[http://localhost:8000/mcp/logs](http://localhost:8000/mcp/logs)**
 
 ---
 
-### Diagrama de Arquitectura del Flujo de Ejecución:
+### Execution Sequence Diagram:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor User as Usuario (Open WebUI)
-    participant UI as Open WebUI Tool (Python)
+    actor User as Engineer (Open WebUI / CLI / IDE)
+    participant UI as MCP Client / Open WebUI Tool
     participant GW as RAG Tutor Gateway (:8000)
     participant Study as study-cybercirujas (:8080)
     participant K8s as k8s-docs-mcp (SQLite FTS5)
-    participant RAG as RAG Tutor Engine (Chroma + Kuzu)
-    participant GPU as Ollama (Radeon RX 6800 GPU)
+    participant RAG as RAG Tutor Engine (Chroma + BM25 + KùzuDB)
+    participant LLM as Local Ollama or Frontier LLM
 
-    User->>UI: Pregunta técnica (K8s / Arquitectura / CKA)
+    User->>UI: Technical Query + WHERE Filters (domain, min_year, tag)
     UI->>GW: POST /chat (orchestrate_tri_mcp=true)
     
-    par Consulta Paralela Multi-MCP
-        GW->>Study: Búsqueda de temario y labs CNCF
-        Study-->>GW: Objetivo de certificación oficial
+    par Parallel Multi-MCP Retrieval
+        GW->>Study: Search CNCF syllabus & lab objectives
+        Study-->>GW: Official certification objective
     and
-        GW->>K8s: Validación API v1 y Manifiestos Canónicos
-        K8s-->>GW: YAMLs verificados kubernetes.io
+        GW->>K8s: Validate API version & pull canonical YAMLs
+        K8s-->>GW: Verified kubernetes.io manifests
     and
-        GW->>RAG: Búsqueda Híbrida (Dense + BM25 + Kùzu)
-        RAG-->>GW: Chunks de libros Manning
+        GW->>RAG: Hybrid + KùzuDB Cypher GraphRAG Retrieval
+        RAG-->>GW: Top-K filtered chunks [Year, Section, Code]
     end
 
-    GW->>GW: Cross-Encoder Reranking (ms-marco)
-    GW->>GPU: Prompt sintetizado con evidencia estricta
-    GPU-->>GW: Respuesta fundamentada (101.8 t/s)
-    GW-->>UI: Payload con Fuentes + Telemetría + Manifiestos
-    UI-->>User: Respuesta con Tarjeta Visual de Verificación Tri-MCP
+    GW->>GW: Cross-Encoder Reranking (ms-marco-MiniLM-L-6-v2)
+    GW->>LLM: Grounded prompt (~1,000 tokens of verified evidence)
+    LLM-->>GW: Synthesized response with exact citations
+    GW-->>UI: Payload with Sources + Telemetry + Manifests
+    UI-->>User: Grounded Answer + Tri-MCP Verification Badge
 ```
 
 > [!TIP]
-> Para ver la lista completa de comandos `curl`, validaciones de hardware (GPU vs CPU), guías de integración con Open WebUI y pasos de arranque desde cero, consulta el documento:
-> 👉 **[CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)**
+> For the complete list of CLI commands, `curl` calls, hardware validations (GPU vs CPU), Open WebUI setup steps, and cold-start instructions, consult:
+> 👉 **[CHEATSHEET_DEMO_COMMANDS.md](CHEATSHEET_DEMO_COMMANDS.md)** and **[STRATEGIC_GUIDE_AND_USAGE.md](STRATEGIC_GUIDE_AND_USAGE.md)**
 
 ---
 
@@ -464,24 +481,25 @@ sequenceDiagram
 
 | Technology | Official Repository | Role in the Project |
 | :--- | :--- | :--- |
+| **KùzuDB** | [kuzudb/kuzu](https://github.com/kuzudb/kuzu) | Embedded C++ property graph database executing declarative Cypher queries for Phase 2 GraphRAG. |
 | **ModernRelay Omnigraph** | [ModernRelay/omnigraph](https://github.com/ModernRelay/omnigraph) | Lakehouse-native graph database over Lance with Git-style branching for agentic state (Phase 2). |
 | **Lance** | [lancedb/lance](https://github.com/lancedb/lance) | Modern columnar format for multimodal data and high-performance vector search. |
-| **ChromaDB** | [chroma-core/chroma](https://github.com/chroma-core/chroma) | Embedded open-source vector database for dense indexing and semantic search (Phase 1). |
+| **ChromaDB** | [chroma-core/chroma](https://github.com/chroma-core/chroma) | Embedded open-source vector database for dense indexing and scalar metadata pre-filtering. |
 | **Rank-BM25** | [dorianbrown/rank_bm25](https://github.com/dorianbrown/rank_bm25) | Okapi BM25 lexical search implementation for exact code tokens, CRDs, and keywords. |
 | **Sentence-Transformers** | [UKPLab/sentence-transformers](https://github.com/UKPLab/sentence-transformers) | Dense embedding models (`all-MiniLM-L6-v2`) and Cross-Encoder rerankers (`ms-marco-MiniLM-L-6-v2`). |
 | **LangChain Core & Community** | [langchain-ai/langchain](https://github.com/langchain-ai/langchain) | RAG orchestration abstractions, code-aware text splitters, and document loaders. |
-| **PyMuPDF (fitz)** | [pymupdf/PyMuPDF](https://github.com/pymupdf/PyMuPDF) | High-speed C-based text, metadata, and page extraction from PDF books. |
-| **Model Context Protocol (MCP)** | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | Official Anthropic / Linux Foundation SDK exposing tools to agents via MCP (v2.x `MCPServer`). |
+| **PyMuPDF (fitz)** | [pymupdf/PyMuPDF](https://github.com/pymupdf/PyMuPDF) | High-speed C-based text, metadata, and page extraction from PDF documents. |
+| **Model Context Protocol (MCP)** | [modelcontextprotocol/python-sdk](https://github.com/modelcontextprotocol/python-sdk) | Official SDK exposing progressive Zero-Token-Burn tools to agents via MCP (`MCPServer` / `FastMCP`). |
 | **FastAPI** | [fastapi/fastapi](https://github.com/fastapi/fastapi) | Async web framework powering the REST API and interactive Swagger documentation. |
-| **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Local model inference engine running on consumer hardware (CPU / GPU). |
-| **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Open-weights foundation models used for agentic reasoning and technical synthesis. |
+| **Ollama** | [ollama/ollama](https://github.com/ollama/ollama) | Optional local model inference engine running on consumer hardware (CPU / GPU / Apple Silicon). |
+| **Qwen 2.5 (Alibaba)** | [QwenLM/Qwen2.5](https://github.com/QwenLM/Qwen2.5) | Open-weights foundation models used for local agentic reasoning and technical synthesis. |
 | **uv (Astral)** | [astral-sh/uv](https://github.com/astral-sh/uv) | High-speed Rust-based Python package manager and resolver. |
 
 ---
 
-## 📖 Glosario Didáctico de Tecnologías (Para Técnicos y No Técnicos)
+## 📖 Educational Technology Glossary (For Technical & Non-Technical Readers)
 
-Para comprender de forma sencilla qué hace cada una de las tecnologías utilizadas en el ecosistema (RAG, MCP, ChromaDB, BM25, KùzuDB, Ollama, Qwen, ROCm, etc.), con **analogías de la vida cotidiana** y los motivos de su elección, consulta:
+For a clear, accessible explanation of every technology used in this ecosystem (RAG, MCP, ChromaDB, BM25, KùzuDB, Cross-Encoder, Ollama, Qwen, ROCm, etc.) with **everyday real-world analogies** and architectural rationale, consult:
 👉 **[GLOSSARY.md](GLOSSARY.md)**
 
 ---

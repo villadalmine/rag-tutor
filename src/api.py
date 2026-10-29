@@ -1,14 +1,16 @@
-"""API REST FastAPI para el Tutor de Manning (compatible con Web UIs y Open WebUI).
+"""FastAPI REST API & Tri-MCP Gateway for the Universal Technical RAG Tutor.
 
-Soporta dos modalidades:
-1. Búsqueda directa sobre el corpus de libros técnicos (RAG híbrido + KùzuDB GraphRAG).
-2. Orquestación Tri-MCP (/mcp/status, /mcp/test y /chat con enriquecimiento multi-servidor).
+Supports two operational modes:
+1. Direct retrieval and synthesis over the local technical library (Hybrid RAG + KùzuDB GraphRAG + WHERE filters).
+2. Tri-MCP Orchestration (/mcp/status, /mcp/test, and /chat with multi-server enrichment).
 """
 
+import datetime
 import json
 import os
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import requests
@@ -24,12 +26,17 @@ if K8S_DOCS_SRC.exists() and str(K8S_DOCS_SRC) not in sys.path:
 
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
-import datetime
-import time
 
 AUDIT_LOGS: List[Dict[str, Any]] = []
 
-def _record_audit_log(endpoint: str, query: str, details: Dict[str, Any], client_ip: str = "unknown", latency_ms: float = 0.0):
+
+def _record_audit_log(
+    endpoint: str,
+    query: str,
+    details: Dict[str, Any],
+    client_ip: str = "unknown",
+    latency_ms: float = 0.0,
+):
     entry = {
         "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "endpoint": endpoint,
@@ -62,23 +69,30 @@ except Exception:
 
 app = FastAPI(
     title="Cloud Native Sovereign RAG & Tri-MCP Gateway API",
-    description="API REST para interactuar con el Tutor RAG Agéntico y orquestar la Trifecta de servidores MCP (study-cybercirujas, k8s-docs-mcp, rag-tutor).",
-    version="1.2.0",
+    description="REST API for interacting with the Agentic RAG Tutor (with SQL-like WHERE filters and LLM-free mode) and orchestrating the Tri-MCP stack (study-cybercirujas, k8s-docs-mcp, rag-tutor).",
+    version="1.3.0",
 )
 
 tutor = AgenticTutorCore()
 
 
 # ----------------------------------------------------------------------
-# Modelos de Datos (Pydantic Schemas)
+# Pydantic Data Models
 # ----------------------------------------------------------------------
 
 class QueryRequest(BaseModel):
-    question: str = Field(..., description="Pregunta técnica sobre arquitectura, certificaciones o Kubernetes.")
+    question: str = Field(..., description="Technical question on architecture, certifications, AI agents, or Kubernetes.")
     orchestrate_tri_mcp: bool = Field(
         True,
-        description="Si es True, consulta automáticamente study-cybercirujas y k8s-docs-mcp para enriquecer la respuesta con el temario oficial y YAMLs canónicos.",
+        description="If True, automatically queries study-cybercirujas and k8s-docs-mcp to enrich the response with official syllabi and canonical YAMLs.",
     )
+    domain: Optional[str] = Field(None, description="Optional domain filter (e.g., 'cloud_native', 'ai_agents', 'mlops').")
+    code_lang: Optional[str] = Field(None, description="Optional code language filter (e.g., 'yaml', 'go', 'python', 'bash').")
+    book: Optional[str] = Field(None, description="Optional book/source identifier substring filter.")
+    min_year: Optional[int] = Field(None, description="Optional minimum publication year filter (e.g., 2024 or 2025).")
+    tag: Optional[str] = Field(None, description="Optional topic tag filter (e.g., 'kubernetes', 'vllm', 'cilium').")
+    section: Optional[str] = Field(None, description="Optional chapter/section title substring filter.")
+    no_llm: bool = Field(False, description="If True, executes deterministic retrieval and reranking without calling Ollama.")
 
 
 class QueryResponse(BaseModel):
@@ -94,12 +108,12 @@ class QueryResponse(BaseModel):
 
 
 class McpTestRequest(BaseModel):
-    target: str = Field("all", description="Servidor MCP objetivo a probar: 'study', 'k8s-docs', o 'all'")
-    query: str = Field("admission controllers", description="Término técnico o Kind para la prueba de verificación")
+    target: str = Field("all", description="Target MCP server to test: 'study', 'k8s-docs', 'rag', or 'all'")
+    query: str = Field("admission controllers", description="Technical term or Kubernetes Kind for the verification test")
 
 
 # ----------------------------------------------------------------------
-# Helpers de Conexión a Servidores MCP
+# MCP Server Connection Helpers
 # ----------------------------------------------------------------------
 
 K8S_KIND_SYNONYMS: Dict[str, str] = {
@@ -171,22 +185,18 @@ STOP_WORDS = {
     "my", "your", "our", "their", "this", "that", "these", "those", "example",
     "examples", "three", "two", "one", "sample", "samples", "show", "give", "me",
     "tell", "explain", "create", "definition", "theory", "works", "work", "help",
-    "understand", "quiero", "como", "crear", "hacer", "dame", "tres", "ejemplo",
-    "ejemplos", "teoria", "funciona", "explicar", "entender", "de", "la", "el",
-    "los", "las", "un", "una", "unos", "unas", "en", "para", "por", "con", "que",
-    "cual", "cuales", "es", "son",
+    "understand",
 }
 
 K8S_PRIORITY_CERTS = {"cka", "ckad", "cks", "ckne", "kcsa", "cnpe"}
 
 
 def _extract_k8s_kind(text: str) -> Optional[str]:
-    """Detecta de forma determinista y tolerante a plurales/siglas el recurso Kubernetes mencionado."""
+    """Deterministically detects the mentioned Kubernetes resource Kind (plural/acronym tolerant)."""
     cleaned = re.sub(r"[^\w\s-]", " ", text.lower())
     for token in cleaned.split():
         if token in K8S_KIND_SYNONYMS:
             return K8S_KIND_SYNONYMS[token]
-    # Check compound terms
     if "network policy" in cleaned or "network policies" in cleaned:
         return "NetworkPolicy"
     if "admission policy" in cleaned or "validating admission" in cleaned:
@@ -205,13 +215,13 @@ def _extract_k8s_kind(text: str) -> Optional[str]:
 
 
 def _clean_search_tokens(query: str) -> List[str]:
-    """Extrae palabras clave sustantivas ignorando stop words conversacionales."""
+    """Extracts substantive keywords while ignoring conversational stop words."""
     raw_tokens = re.sub(r"[^\w\s-]", " ", query.lower()).split()
     return [t for t in raw_tokens if t not in STOP_WORDS and len(t) >= 3]
 
 
 def _fetch_study_search(query: str, limit: int = 2) -> List[Dict[str, Any]]:
-    """Consulta la API de búsqueda de study-cybercirujas con extracción inteligente de entidades y stop-word filtering."""
+    """Queries the study-cybercirujas search API with entity extraction and stop-word filtering."""
     base_urls = [
         os.getenv("STUDY_API_URL", "http://127.0.0.1:8080"),
         "https://study.cybercirujas.club",
@@ -219,7 +229,6 @@ def _fetch_study_search(query: str, limit: int = 2) -> List[Dict[str, Any]]:
     detected_kind = _extract_k8s_kind(query)
     clean_tokens = _clean_search_tokens(query)
 
-    # Candidatos en orden de especificidad técnica
     candidates: List[str] = []
     if detected_kind:
         candidates.append(detected_kind.lower())
@@ -241,7 +250,7 @@ def _fetch_study_search(query: str, limit: int = 2) -> List[Dict[str, Any]]:
                 resp = requests.get(
                     f"{base}/api/search",
                     params={"q": term, "limit": 10},
-                    headers={"User-Agent": "rag-tutor-api/1.2"},
+                    headers={"User-Agent": "rag-tutor-api/1.3"},
                     timeout=8.0,
                 )
                 if resp.status_code == 200:
@@ -260,7 +269,7 @@ def _fetch_study_search(query: str, limit: int = 2) -> List[Dict[str, Any]]:
 
 
 def _fetch_study_topic(cert: str, topic_id: str, lang: str = "en") -> Optional[Dict[str, Any]]:
-    """Obtiene el contenido detallado de un objetivo de examen en study-cybercirujas."""
+    """Fetches detailed exam objective content from study-cybercirujas."""
     base_urls = [
         os.getenv("STUDY_API_URL", "http://127.0.0.1:8080"),
         "https://study.cybercirujas.club",
@@ -270,7 +279,7 @@ def _fetch_study_topic(cert: str, topic_id: str, lang: str = "en") -> Optional[D
             resp = requests.get(
                 f"{base}/api/certs/{cert}/topics/{topic_id}",
                 params={"lang": lang},
-                headers={"User-Agent": "rag-tutor-api/1.2"},
+                headers={"User-Agent": "rag-tutor-api/1.3"},
                 timeout=8.0,
             )
             if resp.status_code == 200:
@@ -281,7 +290,7 @@ def _fetch_study_topic(cert: str, topic_id: str, lang: str = "en") -> Optional[D
 
 
 def _check_study_health() -> Dict[str, Any]:
-    """Verifica si study-cybercirujas está activo y responde."""
+    """Checks whether study-cybercirujas is reachable."""
     base_urls = [
         ("local", os.getenv("STUDY_API_URL", "http://127.0.0.1:8080")),
         ("remote_mirror", "https://study.cybercirujas.club"),
@@ -290,7 +299,7 @@ def _check_study_health() -> Dict[str, Any]:
         try:
             resp = requests.get(
                 f"{base}/api/catalog",
-                headers={"User-Agent": "rag-tutor-api/1.2"},
+                headers={"User-Agent": "rag-tutor-api/1.3"},
                 timeout=8.0,
             )
             if resp.status_code == 200:
@@ -307,18 +316,18 @@ def _check_study_health() -> Dict[str, Any]:
     return {
         "status": "offline",
         "mode": "unreachable",
-        "error": "Ni el servidor local (:8080) ni el mirror remoto están disponibles.",
+        "error": "Neither the local server (:8080) nor the remote mirror is reachable.",
         "tools": ["list_certs", "get_syllabus", "get_topic", "search_topics"],
     }
 
 
 # ----------------------------------------------------------------------
-# Endpoints de la API
+# API Endpoints
 # ----------------------------------------------------------------------
 
-@app.get("/health", tags=["Sistema"])
+@app.get("/health", tags=["System"])
 def health_check() -> Dict[str, Any]:
-    """Estado de salud del servicio local y sus índices."""
+    """Health status of the local service and its retrieval indices."""
     return {
         "status": "online",
         "service": "rag-tutor",
@@ -334,7 +343,7 @@ def health_check() -> Dict[str, Any]:
 
 @app.get("/mcp/status", tags=["Tri-MCP Gateway"])
 def mcp_status() -> Dict[str, Any]:
-    """Inspecciona y monitorea el estado de conexión de los 3 servidores MCP."""
+    """Inspects and monitors the live connection status of all 3 MCP servers."""
     # 1. Study Cybercirujas
     study_info = _check_study_health()
 
@@ -361,18 +370,24 @@ def mcp_status() -> Dict[str, Any]:
     else:
         k8s_info = {
             "status": "offline",
-            "error": "Módulo k8s-docs-mcp no encontrado en el PATH relativo.",
+            "error": "k8s-docs-mcp module not found in relative PATH.",
             "tools": ["search_k8s_docs", "get_canonical_manifest", "check_api_version"],
         }
 
-    # 3. RAG Tutor (Local Literature)
+    # 3. RAG Tutor (Local Technical Library + KùzuDB GraphRAG)
     rag_info = {
         "status": "online",
         "retriever_engine": config.RETRIEVER_TYPE,
         "vector_db": "ChromaDB" if config.CHROMA_DIR.exists() else "None",
         "lexical_index": "BM25" if config.BM25_INDEX_PATH.exists() else "None",
         "graph_rag": "KùzuDB Cypher" if config.GRAPH_DATA_PATH.exists() else "None",
-        "tools": ["search_books", "kuzu_graph_traversal", "agentic_reasoning"],
+        "tools": [
+            "listar_libros_y_secciones",
+            "buscar_fragmentos_secciones",
+            "consultar_grafo_kuzu",
+            "consultar_libros_manning",
+            "buscar_codigo_yaml",
+        ],
     }
 
     all_ready = (study_info["status"] == "online") and (k8s_info["status"] == "online")
@@ -389,7 +404,7 @@ def mcp_status() -> Dict[str, Any]:
 
 @app.get("/mcp/logs", tags=["Tri-MCP Gateway"])
 def get_mcp_logs(limit: int = 30) -> Dict[str, Any]:
-    """Historial en vivo de consultas, herramientas invocadas y auditoría de telemetría."""
+    """Live audit log of queries, invoked tools, and latency telemetry."""
     return {
         "total_recorded_events": len(AUDIT_LOGS),
         "recent_events": AUDIT_LOGS[:limit],
@@ -398,14 +413,14 @@ def get_mcp_logs(limit: int = 30) -> Dict[str, Any]:
 
 @app.post("/mcp/test", tags=["Tri-MCP Gateway"])
 def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
-    """Ejecuta una prueba de diagnóstico en vivo sobre los servidores MCP."""
+    """Executes a live diagnostic test across the connected MCP servers."""
     t0 = time.time()
     client_ip = request.client.host if request.client else "unknown"
     results: Dict[str, Any] = {}
     detected_kind = _extract_k8s_kind(payload.query)
     clean_tokens = _clean_search_tokens(payload.query)
 
-    # 1. Probar study-cybercirujas
+    # 1. Test study-cybercirujas
     if payload.target in ("study", "all"):
         hits = _fetch_study_search(payload.query, limit=2)
         if hits:
@@ -429,10 +444,10 @@ def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
         else:
             results["study_cybercirujas"] = {
                 "status": "NO_HITS",
-                "message": f"No se encontraron objetivos de examen para '{payload.query}'",
+                "message": f"No exam objectives found for '{payload.query}'",
             }
 
-    # 2. Probar k8s-docs-mcp
+    # 2. Test k8s-docs-mcp
     if payload.target in ("k8s-docs", "all"):
         if K8S_DOCS_AVAILABLE:
             try:
@@ -466,7 +481,7 @@ def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
         else:
             results["k8s_docs_mcp"] = {"status": "UNAVAILABLE", "error": "k8s_docs_mcp import failed"}
 
-    # 3. Probar rag-tutor
+    # 3. Test rag-tutor
     if payload.target in ("rag", "all"):
         test_term = clean_tokens[0] if clean_tokens else payload.query
         retriever_ready = tutor.retriever is not None
@@ -478,7 +493,7 @@ def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
             "ollama_model": config.OLLAMA_MODEL,
             "chroma_dir_exists": config.CHROMA_DIR.exists(),
             "knowledge_graph_exists": config.GRAPH_DATA_PATH.exists(),
-            "pipeline_status": "Vector DB & Hybrid Reranking ready",
+            "pipeline_status": "Vector DB, BM25, Cross-Encoder & KùzuDB GraphRAG ready",
         }
 
     duration = (time.time() - t0) * 1000.0
@@ -502,20 +517,14 @@ def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
     }
 
 
-@app.post("/chat", response_model=QueryResponse, tags=["Chat & Orquestación"])
+@app.post("/chat", response_model=QueryResponse, tags=["Chat & Orchestration"])
 def chat_endpoint(payload: QueryRequest, request: Request):
-    """Endpoint principal de consulta.
-    
-    Si `orchestrate_tri_mcp` es True, consulta automáticamente:
-    1. `study-cybercirujas` para obtener el contexto del syllabus y labs.
-    2. `k8s-docs-mcp` para validar la versión de la API y extraer YAMLs oficiales.
-    3. `rag-tutor` para sintetizar con los libros de arquitectura y el grafo KùzuDB.
-    """
+    """Primary query endpoint supporting SQL-like WHERE filters, LLM-free retrieval, and Tri-MCP orchestration."""
     t0 = time.time()
     client_ip = request.client.host if request.client else "unknown"
 
     if not payload.question.strip():
-        raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
 
     extra_chunks: List[RetrievedChunk] = []
     enrichment_metadata: Dict[str, Any] = {
@@ -525,8 +534,8 @@ def chat_endpoint(payload: QueryRequest, request: Request):
         "k8s_manifest_injected": False,
     }
 
-    if payload.orchestrate_tri_mcp:
-        # 1. Enriquecer con study-cybercirujas
+    if payload.orchestrate_tri_mcp and not payload.no_llm:
+        # 1. Enrich with study-cybercirujas
         try:
             hits = _fetch_study_search(payload.question, limit=1)
             if hits:
@@ -547,7 +556,7 @@ def chat_endpoint(payload: QueryRequest, request: Request):
         except Exception as e:
             enrichment_metadata["study_error"] = str(e)
 
-        # 2. Enriquecer con k8s-docs-mcp si aplica
+        # 2. Enrich with k8s-docs-mcp if applicable
         if K8S_DOCS_AVAILABLE:
             try:
                 matched_kind = _extract_k8s_kind(payload.question)
@@ -585,8 +594,18 @@ def chat_endpoint(payload: QueryRequest, request: Request):
             except Exception as e:
                 enrichment_metadata["k8s_docs_error"] = str(e)
 
-    # Ejecutar loop agéntico de RAG Tutor con los chunks combinados
-    result = tutor.ask(payload.question, extra_chunks=extra_chunks if extra_chunks else None)
+    # Execute RAG Tutor retrieval / agentic loop with WHERE filters
+    result = tutor.ask(
+        payload.question,
+        extra_chunks=extra_chunks if extra_chunks else None,
+        domain=payload.domain,
+        code_lang=payload.code_lang,
+        book=payload.book,
+        min_year=payload.min_year,
+        tag=payload.tag,
+        section=payload.section,
+        no_llm=payload.no_llm,
+    )
     duration = (time.time() - t0) * 1000.0
 
     _record_audit_log(
@@ -594,6 +613,10 @@ def chat_endpoint(payload: QueryRequest, request: Request):
         query=payload.question,
         details={
             "orchestrate_tri_mcp": payload.orchestrate_tri_mcp,
+            "domain": payload.domain,
+            "min_year": payload.min_year,
+            "tag": payload.tag,
+            "no_llm": payload.no_llm,
             "study_objective": enrichment_metadata.get("study_objective"),
             "k8s_kind": enrichment_metadata.get("k8s_kind"),
             "manifest_injected": enrichment_metadata.get("k8s_manifest_injected", False),
