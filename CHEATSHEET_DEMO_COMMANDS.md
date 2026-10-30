@@ -24,7 +24,7 @@ This practical cheatsheet contains all CLI commands, LLM-free verification comma
 
 ### 1.2 Incremental Multi-Format Ingestion & 3-Layer Deduplication
 ```bash
-# Ingest all new or modified sources in books/ (.pdf, .md, .txt, .json, .jsonl, or Markdown folders)
+# Ingest all new or modified sources in books/ (.pdf, .md, .txt, .json, .jsonl, .vtt, .srt, or course/book folders)
 .venv/bin/python src/ingest.py
 
 # Sync only Markdown/ chapter folders from an external export directory and index incrementally:

@@ -6,7 +6,7 @@ This document explains **step-by-step how to operate the system**, **how to sync
 
 ## 1. Automated Multi-Domain Profiling & Taxonomy Overview
 
-When technical documentation, internal engineering runbooks, or reference books (`.pdf`, `.md`, `.txt`, `.json`, `.jsonl`, or multi-chapter Markdown folders) are placed in `books/`, the **Universal Deterministic Metadata Engine** (`src/metadata_engine.py`) profiles each source in `< 50 ms` without requiring an LLM:
+When technical documentation, internal engineering runbooks, reference books, or video course transcripts (`.pdf`, `.md`, `.txt`, `.json`, `.jsonl`, `.vtt`, `.srt`, or multi-chapter Markdown folders) are placed in `books/`, the **Universal Deterministic Metadata Engine** (`src/metadata_engine.py`) profiles each source in `< 50 ms` without requiring an LLM:
 
 | Sample Technical Corpus Profile (`source`) | Year | Primary Domain | Secondary Domains | Key Auto-Extracted Tags |
 | :--- | :---: | :--- | :--- | :--- |
@@ -40,7 +40,7 @@ What incremental ingestion does automatically:
    - **Layer 1 (Exact Source + SHA-256):** Skips any source in `books/` whose SHA-256 hash matches `data/.ingestion_manifest.json`.
    - **Layer 2 (Content SHA-256 Match Across Filenames):** Skips identical content renamed to another folder or file.
    - **Layer 3 (Normalized Title Match Across Formats):** Skips `cloud-native-k8s.pdf` if `cloud-native-k8s` is already indexed as a Markdown folder.
-2. Extracts metadata (`publication_year`, `domain`, `secondary_domains`, `tags`, `sections`, `code_lang`), embeds **only the new sources**, updates `bm25_index.pkl`, and synchronizes the KùzuDB graph (`data/kuzu_db`).
+2. Extracts metadata (`publication_year`, `content_type` [video_course vs book], `domain`, `secondary_domains`, `tags`, `has_exercises`, `sections`, `code_lang`, video lesson timestamps `[MM:SS - MM:SS]`), embeds **only the new sources**, updates `bm25_index.pkl`, and synchronizes the KùzuDB graph (`data/kuzu_db`).
 
 ### B. Inspecting the Local Catalog & Section Trees (Zero LLM Required)
 ```bash

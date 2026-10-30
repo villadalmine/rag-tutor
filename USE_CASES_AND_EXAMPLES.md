@@ -29,7 +29,7 @@ ollama run qwen2.5:7b
 ```
 
 ### Step 3: Placing Books (BYOB - Bring Your Own Books)
-Copy your legally owned PDF books into `books/`. The system auto-profiles any topic:
+Copy your legally owned books, PDFs, or video course transcripts into `books/`. The system auto-profiles any topic:
 ```bash
 # The directory is empty by default
 ls -la books/
