@@ -84,9 +84,12 @@ def listar_libros_y_secciones(
             continue
 
         matched += 1
+        c_type = meta.get("content_type", "book")
+        type_badge = "🎬 Video Course" if c_type == "video_course" else "📘 Book"
         year_badge = f"📅 Year: **{b_year}**" if b_year else "📅 Year: *Unknown*"
+        exercise_badge = " | 🧪 Hands-On Labs" if meta.get("has_exercises") else ""
         lines.append(
-            f"- **{book_name}** | {year_badge} | Domain: `{b_domain}` | Units: {b_units} | Tags: `{b_tags}`"
+            f"- **{book_name}** ({type_badge}) | {year_badge} | Domain: `{b_domain}` | Units: {b_units}{exercise_badge} | Tags: `{b_tags}`"
         )
 
         if incluir_secciones and sections:

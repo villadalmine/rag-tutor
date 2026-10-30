@@ -115,6 +115,20 @@ SYNTAX_SIGNATURES: List[Tuple[str, re.Pattern]] = [
 ]
 
 HEADING_RE = re.compile(r"^(#{1,4})\s+(.+)$", re.MULTILINE)
+TIMESTAMP_RANGE_RE = re.compile(
+    r"\*\*\[(\d{1,2}:\d{2}(?::\d{2})?(?:\s*-\s*\d{1,2}:\d{2}(?::\d{2})?)?)\]\*\*|"
+    r"\[(\d{1,2}:\d{2}(?::\d{2})?\s*-\s*\d{1,2}:\d{2}(?::\d{2})?)\]"
+)
+VIDEO_COURSE_RE = re.compile(
+    r"(?:\*\*Content Type:\*\*\s*Video Course|\*\*Content Format:\*\*\s*video|"
+    r"## Video Transcript \(Timestamped\)|\*\*Lesson Type:\*\*\s*(?:Video Lecture|Hands-On Demo))",
+    re.IGNORECASE,
+)
+EXERCISE_RE = re.compile(
+    r"(?:\[HANDS-ON DEMO / EXERCISE\]|Hands-On Demo / Exercise Video|"
+    r"\b(?:coding exercises|hands-on lab|solution\s*[-–]\s*|demo\s*[-–]\s*|practice quiz)\b)",
+    re.IGNORECASE,
+)
 
 COPYRIGHT_YEAR_PATTERNS = [
     re.compile(r"\*\*Publication Date:\*\*\s*(20\d{2}|19\d{2})", re.IGNORECASE),
@@ -290,11 +304,25 @@ def profile_document(
     pub_year = extract_publication_year(source_name, sample_text_str)
     sections = extract_sections_index(docs) if docs else []
 
+    is_video_course = bool(
+        VIDEO_COURSE_RE.search(sample_text_str)
+        or len(TIMESTAMP_RANGE_RE.findall(sample_text_str)) >= 3
+    )
+    has_exercises = bool(EXERCISE_RE.search(sample_text_str))
+    content_type = "video_course" if is_video_course else "book"
+
+    if is_video_course and "video_course" not in tags:
+        tags.append("video_course")
+    if has_exercises and "hands_on_labs" not in tags:
+        tags.append("hands_on_labs")
+
     entry = {
+        "content_type": content_type,
         "domain": best_domain,
         "secondary_domains": secondary_domains,
         "publication_year": pub_year,
         "tags": tags,
+        "has_exercises": has_exercises,
         "auto_generated": True,
         "pages": total_units,
         "sections": sections,
@@ -381,9 +409,21 @@ def detect_chunk_syntax(text: str) -> Dict[str, Any]:
     is_heading = heading_match is not None
     section_title = heading_match.group(2).strip()[:120] if heading_match else ""
 
+    # 4. Detect universal video transcript timestamps ([MM:SS - MM:SS]) and exercises
+    ts_matches = [m.group(1) or m.group(2) for m in TIMESTAMP_RANGE_RE.finditer(text) if (m.group(1) or m.group(2))]
+    timestamp = ""
+    if ts_matches:
+        first_ts = ts_matches[0].split("-")[0].strip()
+        last_ts = ts_matches[-1].split("-")[-1].strip()
+        timestamp = f"{first_ts} - {last_ts}" if first_ts != last_ts else first_ts
+
+    has_exercise = bool(EXERCISE_RE.search(text))
+
     return {
         "has_code": has_code,
         "code_lang": code_lang,
         "is_heading": is_heading,
         "section_title": section_title,
+        "timestamp": timestamp,
+        "has_exercise": has_exercise,
     }

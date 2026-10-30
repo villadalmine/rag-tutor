@@ -16,17 +16,20 @@ class RetrievedChunk:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def to_citation(self) -> str:
-        """Formats the source for grounded citations (including publication year and section/page)."""
+        """Formats the source for grounded citations (including publication year, section/page, and video timestamp)."""
         year = self.metadata.get("publication_year")
         src_label = f"{self.source} [{year}]" if year else self.source
         chapter = self.metadata.get("chapter") or self.metadata.get("section_title")
+        timestamp = self.metadata.get("timestamp")
+        ts_suffix = f" @ [{timestamp}]" if timestamp else ""
+
         if self.page and chapter:
-            return f"{src_label} ({chapter}, Page {self.page})"
+            return f"{src_label} ({chapter}, Page {self.page}{ts_suffix})"
         if self.page:
-            return f"{src_label} (Page {self.page})"
+            return f"{src_label} (Page {self.page}{ts_suffix})"
         if chapter:
-            return f"{src_label} ({chapter})"
-        return src_label
+            return f"{src_label} ({chapter}{ts_suffix})"
+        return f"{src_label}{ts_suffix}"
 
 
 class BaseRetriever(ABC):

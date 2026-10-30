@@ -43,7 +43,7 @@ from src.metadata_engine import (
 )
 
 MANIFEST_PATH = ROOT_DIR / "data" / ".ingestion_manifest.json"
-SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".txt", ".json", ".jsonl"}
+SUPPORTED_EXTENSIONS = {".pdf", ".md", ".markdown", ".txt", ".json", ".jsonl", ".vtt", ".srt"}
 
 
 @dataclass
@@ -96,6 +96,8 @@ def discover_book_sources(books_dir: Path) -> List[BookSource]:
                 ".txt": "text",
                 ".json": "json",
                 ".jsonl": "jsonl",
+                ".vtt": "vtt",
+                ".srt": "srt",
             }[ext]
             sources.append(
                 BookSource(
@@ -200,6 +202,76 @@ def _extract_markdown_title(text: str, fallback: str) -> str:
     return m.group(1).strip() if m else fallback
 
 
+def _format_vtt_time(hours_prefix: Optional[str], mm_ss: str) -> str:
+    """Formats subtitle hours and minutes into clean MM:SS or H:MM:SS."""
+    if not hours_prefix:
+        return mm_ss
+    h = hours_prefix.rstrip(":")
+    if h == "00" or h == "0":
+        return mm_ss
+    return f"{int(h)}:{mm_ss}"
+
+
+def _parse_vtt_or_srt(text: str) -> str:
+    """Universal parser that converts WebVTT (.vtt) and SubRip (.srt) subtitles
+    into clean, timestamped text paragraphs with [MM:SS - MM:SS] format for RAG.
+    """
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    cues = []
+    current_ts = ""
+    current_lines = []
+
+    time_re = re.compile(
+        r"(?:(\d{1,2}:)?(\d{2}:\d{2})[.,](\d{3}))\s*-->\s*(?:(\d{1,2}:)?(\d{2}:\d{2})[.,](\d{3}))"
+    )
+
+    for line in lines:
+        line_str = line.strip()
+        if not line_str or line_str.upper() == "WEBVTT" or line_str.isdigit():
+            continue
+        m = time_re.search(line_str)
+        if m:
+            if current_ts and current_lines:
+                cues.append((current_ts, " ".join(current_lines)))
+                current_lines = []
+            start = _format_vtt_time(m.group(1), m.group(2))
+            end = _format_vtt_time(m.group(4), m.group(5))
+            current_ts = f"[{start} - {end}]"
+        else:
+            clean_line = re.sub(r"<[^>]+>", "", line_str).strip()
+            if clean_line:
+                current_lines.append(clean_line)
+
+    if current_ts and current_lines:
+        cues.append((current_ts, " ".join(current_lines)))
+
+    paragraphs = []
+    buf_ts_start = ""
+    buf_ts_end = ""
+    buf_text = []
+
+    for ts, text_content in cues:
+        ts_clean = ts.strip("[]")
+        parts = ts_clean.split(" - ")
+        start_part = parts[0] if parts else ""
+        end_part = parts[1] if len(parts) > 1 else start_part
+        if not buf_ts_start:
+            buf_ts_start = start_part
+        buf_ts_end = end_part
+        buf_text.append(text_content)
+
+        if sum(len(t) for t in buf_text) >= 280 or len(buf_text) >= 5:
+            paragraphs.append(f"**[{buf_ts_start} - {buf_ts_end}]** " + " ".join(buf_text))
+            buf_ts_start = ""
+            buf_ts_end = ""
+            buf_text = []
+
+    if buf_text:
+        paragraphs.append(f"**[{buf_ts_start} - {buf_ts_end}]** " + " ".join(buf_text))
+
+    return "\n\n".join(paragraphs) if paragraphs else text
+
+
 def extract_documents_from_source(source: BookSource) -> List[Any]:
     """Extracts LangChain Document objects from PDF, Markdown, TXT, JSON, JSONL, or folder."""
     from langchain_core.documents import Document
@@ -285,6 +357,25 @@ def extract_documents_from_source(source: BookSource) -> List[Any]:
                             },
                         )
                     )
+
+        elif ext in {".vtt", ".srt"}:
+            raw_text = fp.read_text(encoding="utf-8", errors="replace").strip()
+            if not raw_text:
+                continue
+            parsed_text = _parse_vtt_or_srt(raw_text)
+            title = _extract_markdown_title(parsed_text, fp.stem.replace("_", " ").title())
+            docs.append(
+                Document(
+                    page_content=f"# {title}\n\n**Lesson Type:** Video Lecture\n\n## Video Transcript (Timestamped)\n\n{parsed_text}",
+                    metadata={
+                        "source": source.name,
+                        "chapter": title,
+                        "filename": fp.name,
+                        "sha256": source.sha256,
+                        "content_type": "video_course",
+                    },
+                )
+            )
 
     return docs
 
@@ -451,18 +542,21 @@ def run_ingestion(reset: bool = False, sync_source_dir: Optional[Path] = None):
             domain = profile["domain"]
             pub_year = profile.get("publication_year")
             tags_str = ", ".join(profile.get("tags", []))
+            content_type = profile.get("content_type", "book")
 
             for d in docs:
                 d.metadata["source"] = src.name
                 d.metadata["domain"] = domain
                 d.metadata["tags"] = tags_str
+                d.metadata["content_type"] = content_type
                 if pub_year:
                     d.metadata["publication_year"] = int(pub_year)
 
             new_raw_docs.extend(docs)
             book_units_map[src.name] = len(docs)
             year_label = f" | Year: {pub_year}" if pub_year else " | Year: N/A"
-            print(f"    Units/chapters: {len(docs)}{year_label} | Domain: {domain} | Tags: [{tags_str}]")
+            type_label = f" | Type: {content_type}"
+            print(f"    Units/chapters: {len(docs)}{type_label}{year_label} | Domain: {domain} | Tags: [{tags_str}]")
         except Exception as e:
             print(f"    [Error processing {src.name}]: {e}")
 
@@ -496,8 +590,10 @@ def run_ingestion(reset: bool = False, sync_source_dir: Optional[Path] = None):
     )
     new_chunks = splitter.split_documents(new_raw_docs)
 
-    # Detect code syntax and section headings per chunk
+    # Detect code syntax, section headings, universal video timestamps, and exercises per chunk
     code_chunks_count = 0
+    video_ts_chunks_count = 0
+    exercise_chunks_count = 0
     for ch in new_chunks:
         syntax_meta = detect_chunk_syntax(ch.page_content)
         ch.metadata["has_code"] = syntax_meta["has_code"]
@@ -505,12 +601,18 @@ def run_ingestion(reset: bool = False, sync_source_dir: Optional[Path] = None):
         ch.metadata["is_heading"] = syntax_meta["is_heading"]
         if syntax_meta["section_title"] and "section_title" not in ch.metadata:
             ch.metadata["section_title"] = syntax_meta["section_title"]
+        if syntax_meta.get("timestamp"):
+            ch.metadata["timestamp"] = syntax_meta["timestamp"]
+            video_ts_chunks_count += 1
+        if syntax_meta.get("has_exercise"):
+            ch.metadata["has_exercise"] = True
+            exercise_chunks_count += 1
         if syntax_meta["has_code"]:
             code_chunks_count += 1
 
     print(
         f"[+] New technical chunks generated: {len(new_chunks)} "
-        f"({code_chunks_count} with detected code)"
+        f"({code_chunks_count} with code, {video_ts_chunks_count} with video timestamps, {exercise_chunks_count} with exercises)"
     )
 
     # 3. Append to ChromaDB
