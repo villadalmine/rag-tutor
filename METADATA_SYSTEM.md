@@ -169,6 +169,18 @@ It operates by inspecting language signatures and markdown code fences:
 
 ---
 
+### 4.1 Universal Video Courses, Hands-On Exercises & Subtitles (`.vtt`, `.srt`, Markdown)
+
+`rag-tutor` automatically detects whether an ingested source is a **written technical book** or a **multimedia video course**:
+
+- **Macro-Level Profiling (`content_type`)**: Detects course syllabi, module breakdowns, and video lecture transcripts, setting `"content_type": "video_course"` vs `"book"`.
+- **Hands-On Exercises Detection**: Detects coding labs, hands-on demos, and practice quizzes, flagging `"has_exercises": true` and appending `"hands_on_labs"` to tags.
+- **Sentence-Aligned Micro-Timestamps**: When ingesting raw WebVTT (`.vtt`), SubRip (`.srt`), or timestamped transcripts, it extracts exact time ranges `[MM:SS - MM:SS]`.
+- **Grounded Video Citations**: When the RAG engine or MCP server cites a video lesson, citations automatically pinpoint the lesson and minute range:
+  `hugging-face-in-action-video-edition [2025] (Chapter 1. Hugging Face Gradio Python library @ [01:50 - 02:57])`
+
+---
+
 ## 5. The `metadata_registry.json` File
 
 The auto-generated configuration file follows this standard declarative schema:

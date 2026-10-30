@@ -148,8 +148,8 @@ If no token is set, warnings are automatically suppressed and execution runs sil
    pip install -r requirements.txt
    ```
 
-3. **Place your technical books (Any format / topic / vendor):**
-   - Copy your `.pdf`, `.md` (or book folders containing `Markdown/*.md`), `.txt`, `.json`, or `.jsonl` files into the `books/` folder. The system is 100% standalone, auto-extracts the **publication year (`publication_year`)**, **domain**, **tags**, and **chapter/section tree (`sections`)**, and automatically ignores `.epub` or raw `OEBPS/*.xhtml` duplicates when Markdown is present.
+3. **Place your technical books or video courses (Any format / topic / vendor):**
+   - Copy your `.pdf`, `.md` (or book/course folders containing `Markdown/*.md`), `.txt`, `.json`, `.jsonl`, `.vtt`, or `.srt` files into the `books/` folder. The system is 100% standalone, auto-extracts the **publication year (`publication_year`)**, **content type (`video_course` vs `book`)**, **domain**, **tags**, **hands-on exercises (`has_exercises`)**, and **chapter/section tree (`sections`)**, citing exact minute ranges (`@ [MM:SS - MM:SS]`) for video lessons.
 
 4. **Run ingestion and indexing:**
    ```bash
