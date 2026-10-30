@@ -177,7 +177,7 @@ It operates by inspecting language signatures and markdown code fences:
 - **Hands-On Exercises Detection**: Detects coding labs, hands-on demos, and practice quizzes, flagging `"has_exercises": true` and appending `"hands_on_labs"` to tags.
 - **Sentence-Aligned Micro-Timestamps**: When ingesting raw WebVTT (`.vtt`), SubRip (`.srt`), or timestamped transcripts, it extracts exact time ranges `[MM:SS - MM:SS]`.
 - **Grounded Video Citations**: When the RAG engine or MCP server cites a video lesson, citations automatically pinpoint the lesson and minute range:
-  `hugging-face-in-action-video-edition [2025] (Chapter 1. Hugging Face Gradio Python library @ [01:50 - 02:57])`
+  `cloud-native-microservices-video-edition [2025] (Chapter 1. Microservices Architecture and Interfaces @ [01:50 - 02:57])`
 
 ---
 
