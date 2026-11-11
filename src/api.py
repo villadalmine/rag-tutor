@@ -24,6 +24,11 @@ K8S_DOCS_SRC = ROOT_DIR.parent / "k8s-docs-mcp" / "src"
 if K8S_DOCS_SRC.exists() and str(K8S_DOCS_SRC) not in sys.path:
     sys.path.insert(0, str(K8S_DOCS_SRC))
 
+# Sibling oss-docs-mcp path (versioned docs of AI-infra projects: KServe, llm-d, SGLang, ...)
+OSS_DOCS_SRC = ROOT_DIR.parent / "oss-docs-mcp" / "src"
+if OSS_DOCS_SRC.exists() and str(OSS_DOCS_SRC) not in sys.path:
+    sys.path.insert(0, str(OSS_DOCS_SRC))
+
 from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel, Field
 
@@ -67,6 +72,16 @@ except Exception:
     K8S_DOCS_AVAILABLE = False
     k8s_store = None
 
+# Import oss-docs-mcp store if available (read-only; no MCP runtime needed in-process)
+try:
+    from oss_docs_mcp.store import Store as OssDocsStore
+
+    oss_store = OssDocsStore()
+    OSS_DOCS_AVAILABLE = oss_store.stats()["chunks"] > 0
+except Exception:
+    OSS_DOCS_AVAILABLE = False
+    oss_store = None
+
 app = FastAPI(
     title="Cloud Native Sovereign RAG & Tri-MCP Gateway API",
     description="REST API for interacting with the Agentic RAG Tutor (with SQL-like WHERE filters and LLM-free mode) and orchestrating the Tri-MCP stack (study-cybercirujas, k8s-docs-mcp, rag-tutor).",
@@ -93,6 +108,10 @@ class QueryRequest(BaseModel):
     tag: Optional[str] = Field(None, description="Optional topic tag filter (e.g., 'kubernetes', 'vllm', 'cilium').")
     section: Optional[str] = Field(None, description="Optional chapter/section title substring filter.")
     no_llm: bool = Field(False, description="If True, executes deterministic retrieval and reranking without calling Ollama.")
+    oss_docs_project: Optional[str] = Field(
+        None, description="Force oss-docs-mcp enrichment from this project id (e.g. 'kserve', 'llm-d'). "
+                          "By default it is used only when the question names an indexed project.")
+    oss_docs_version: Optional[str] = Field(None, description="Pin the oss-docs project version (e.g. '0.20'); default latest.")
 
 
 class QueryResponse(BaseModel):
@@ -108,7 +127,7 @@ class QueryResponse(BaseModel):
 
 
 class McpTestRequest(BaseModel):
-    target: str = Field("all", description="Target MCP server to test: 'study', 'k8s-docs', 'rag', or 'all'")
+    target: str = Field("all", description="Target MCP server to test: 'study', 'k8s-docs', 'oss-docs', 'rag', or 'all'")
     query: str = Field("admission controllers", description="Technical term or Kubernetes Kind for the verification test")
 
 
@@ -341,6 +360,57 @@ def health_check() -> Dict[str, Any]:
     }
 
 
+def _oss_project_aliases() -> Dict[str, str]:
+    """alias (lowercase) → project id, built from the oss-docs index (id, name, parenthesised aka)."""
+    aliases: Dict[str, str] = {}
+    if not (OSS_DOCS_AVAILABLE and oss_store):
+        return aliases
+    for row in oss_store.projects():
+        pid, name = row["id"], (row["name"] or "")
+        names = {pid, pid.replace("-", ""), pid.replace("-", " "), name.lower()}
+        names |= {n.strip().lower().removeprefix("ex ").strip() for n in re.findall(r"\(([^)]+)\)", name)}
+        names |= {re.sub(r"\s*\(.*\)", "", name).strip().lower()}
+        for n in names:
+            if len(n) >= 4:
+                aliases[n] = pid
+    return aliases
+
+
+def _detect_oss_project(text: str) -> Optional[str]:
+    lowered = f" {re.sub(r'[^a-z0-9 -]', ' ', text.lower())} "
+    for alias, pid in sorted(_oss_project_aliases().items(), key=lambda kv: -len(kv[0])):
+        if f" {alias} " in lowered:
+            return pid
+    return None
+
+
+def _oss_docs_enrich(question: str, project: Optional[str], version: Optional[str], limit: int = 2):
+    """Top oss-docs sections for the question, as RetrievedChunks with version-pinned citations."""
+    project = project or _detect_oss_project(question)
+    if not (OSS_DOCS_AVAILABLE and oss_store and project):
+        return [], {"oss_docs_project": None}
+    terms = " ".join(_clean_search_tokens(question)) or question
+    hits = oss_store.search(terms, project=project, version=version, limit=limit, require_all=True) \
+        or oss_store.search(terms, project=project, version=version, limit=limit)
+    rows = oss_store.chunks_by_id([h.chunk_id for h in hits])
+    chunks = [
+        RetrievedChunk(
+            content=f"# {r['heading']}\n\n{r['content'][:2500]}",
+            source=f"oss-docs-mcp: {r['project']}@{r['version']} — {r['heading']} "
+                   f"({r['url']}{'#' + r['anchor'] if r['anchor'] else ''})",
+            page=None,
+            score=9.5,
+            metadata={"type": "official_project_docs", "project": r["project"], "version": r["version"],
+                      "url": r["url"], "commit": r["commit_sha"][:10]},
+        )
+        for r in rows
+    ]
+    meta = {"oss_docs_project": project,
+            "oss_docs_version": rows[0]["version"] if rows else oss_store.resolve_version(project, version),
+            "oss_docs_hits": [f"{r['project']}@{r['version']} · {r['heading']}" for r in rows]}
+    return chunks, meta
+
+
 @app.get("/mcp/status", tags=["Tri-MCP Gateway"])
 def mcp_status() -> Dict[str, Any]:
     """Inspects and monitors the live connection status of all 3 MCP servers."""
@@ -374,7 +444,22 @@ def mcp_status() -> Dict[str, Any]:
             "tools": ["search_k8s_docs", "get_canonical_manifest", "check_api_version"],
         }
 
-    # 3. RAG Tutor (Local Technical Library + KùzuDB GraphRAG)
+    # 3. oss-docs-mcp (versioned AI-infra project docs)
+    if OSS_DOCS_AVAILABLE and oss_store:
+        try:
+            oss_info = {
+                "status": "online",
+                **oss_store.stats(),
+                "projects": {r["id"]: r["all_versions"] for r in oss_store.projects()},
+                "tools": ["search_docs", "read_chunks", "get_page_outline", "list_versions", "whats_new"],
+            }
+        except Exception as e:
+            oss_info = {"status": "degraded", "error": str(e)}
+    else:
+        oss_info = {"status": "offline", "error": "oss-docs-mcp not found next to rag-tutor or index empty "
+                                                  "(run `uv run oss-docs sync` or `oss-docs pull` there)."}
+
+    # 4. RAG Tutor (Local Technical Library + KùzuDB GraphRAG)
     rag_info = {
         "status": "online",
         "retriever_engine": config.RETRIEVER_TYPE,
@@ -397,6 +482,7 @@ def mcp_status() -> Dict[str, Any]:
         "servers": {
             "study_cybercirujas": study_info,
             "k8s_docs_mcp": k8s_info,
+            "oss_docs_mcp": oss_info,
             "rag_tutor": rag_info,
         },
     }
@@ -481,7 +567,21 @@ def mcp_test(payload: McpTestRequest, request: Request) -> Dict[str, Any]:
         else:
             results["k8s_docs_mcp"] = {"status": "UNAVAILABLE", "error": "k8s_docs_mcp import failed"}
 
-    # 3. Test rag-tutor
+    # 3. Test oss-docs-mcp
+    if payload.target in ("oss-docs", "all"):
+        if OSS_DOCS_AVAILABLE and oss_store:
+            project = _detect_oss_project(payload.query)
+            terms = " ".join(clean_tokens) if clean_tokens else payload.query
+            hits = oss_store.search(terms, project=project, limit=3)
+            results["oss_docs_mcp"] = {
+                "status": "SUCCESS" if hits else "NO_HITS",
+                "detected_project": project,
+                "hits": [f"[{h.chunk_id}] {h.project}@{h.version} · {h.heading} — {h.url}" for h in hits],
+            }
+        else:
+            results["oss_docs_mcp"] = {"status": "UNAVAILABLE", "error": "oss_docs_mcp import failed or index empty"}
+
+    # 4. Test rag-tutor
     if payload.target in ("rag", "all"):
         test_term = clean_tokens[0] if clean_tokens else payload.query
         retriever_ready = tutor.retriever is not None
@@ -594,6 +694,14 @@ def chat_endpoint(payload: QueryRequest, request: Request):
             except Exception as e:
                 enrichment_metadata["k8s_docs_error"] = str(e)
 
+        # 3. Enrich with oss-docs-mcp when the question names an indexed project (or one is forced)
+        try:
+            oss_chunks, oss_meta = _oss_docs_enrich(payload.question, payload.oss_docs_project, payload.oss_docs_version)
+            extra_chunks.extend(oss_chunks)
+            enrichment_metadata.update(oss_meta)
+        except Exception as e:
+            enrichment_metadata["oss_docs_error"] = str(e)
+
     # Execute RAG Tutor retrieval / agentic loop with WHERE filters
     result = tutor.ask(
         payload.question,
@@ -620,6 +728,7 @@ def chat_endpoint(payload: QueryRequest, request: Request):
             "study_objective": enrichment_metadata.get("study_objective"),
             "k8s_kind": enrichment_metadata.get("k8s_kind"),
             "manifest_injected": enrichment_metadata.get("k8s_manifest_injected", False),
+            "oss_docs_project": enrichment_metadata.get("oss_docs_project"),
             "sources_count": len(result.get("sources", [])),
             "retrieved_chunks": result.get("retrieved_chunks", 0),
         },

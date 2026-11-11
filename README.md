@@ -288,7 +288,7 @@ You can test the `POST /chat` endpoint directly from the UI.
 
 #### Available Endpoints:
 - `GET /health`: Healthcheck verifying ChromaDB, BM25, and local Ollama model connectivity.
-- `GET /mcp/status`: Real-time monitoring and connection status across all 3 MCP servers (`study-cybercirujas`, `k8s-docs-mcp`, `rag-tutor`).
+- `GET /mcp/status`: Real-time monitoring and connection status across the MCP servers (`study-cybercirujas`, `k8s-docs-mcp`, `oss-docs-mcp`, `rag-tutor`).
 - `POST /mcp/test`: Live diagnostics endpoint with deterministic Kind extraction, stop-word filtering, and multi-manifest retrieval across all connected MCP servers.
 - `POST /chat`: Query endpoint returning grounded answers, sources, and pipeline telemetry with optional Tri-MCP enrichment (`orchestrate_tri_mcp: true`).
 
@@ -307,6 +307,27 @@ curl -s -X POST http://localhost:8000/mcp/test \
 curl -s -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
   -d '{"question": "How do in-tree ValidatingAdmissionPolicies work in Kubernetes?", "orchestrate_tri_mcp": true}'
+```
+
+#### Optional 4th MCP: `oss-docs-mcp` (versioned AI-infra project docs)
+
+If the sibling [`oss-docs-mcp`](../oss-docs-mcp) is present with its index built
+(`uv run oss-docs sync` or `uv run oss-docs pull` there), `/chat` adds the top **version-pinned**
+sections from KServe, llm-d, SGLang, agentgateway, Agent Router (ex Envoy AI Gateway) or Kubeflow
+**only when the question names one of them** — or when you force it:
+
+```bash
+# auto: "KServe" in the question → kserve@latest sections are injected with their URLs
+curl -s -X POST http://localhost:8000/chat -H "Content-Type: application/json" \
+  -d '{"question": "How does KServe autoscale an InferenceService with KEDA?"}' | jq .mcp_enrichment
+
+# forced project + pinned version
+curl -s -X POST http://localhost:8000/chat -H "Content-Type: application/json" \
+  -d '{"question": "rate limiting by tokens", "oss_docs_project": "agentgateway", "oss_docs_version": "1.6.x"}'
+
+# diagnostics
+curl -s -X POST http://localhost:8000/mcp/test -H "Content-Type: application/json" \
+  -d '{"target": "oss-docs", "query": "agentgateway MCP authentication"}' | jq
 ```
 
 ---

@@ -16,6 +16,11 @@
       "args": ["-m", "src.mcp_server"],
       "cwd": ".",
       "description": "Arquitectura de sistemas, ingeniería de plataformas y libros técnicos Manning (RAG híbrido + KùzuDB GraphRAG)"
+    },
+    "oss-docs-mcp": {
+      "command": "uv",
+      "args": ["--directory", "../oss-docs-mcp", "run", "oss-docs-mcp"],
+      "description": "Documentación oficial versionada de proyectos AI-infra (KServe, llm-d, SGLang, agentgateway, Agent Router, Kubeflow) sincronizada desde sus repos git"
     }
   }
 }
