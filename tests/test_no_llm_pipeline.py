@@ -12,6 +12,7 @@ Usage:
     python tests/test_no_llm_pipeline.py
 """
 
+import re
 import sys
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from src.mcp_server import (
     buscar_codigo_yaml,
     buscar_fragmentos_secciones,
     consultar_grafo_kuzu,
+    leer_fragmentos,
     listar_libros_y_secciones,
 )
 from src.metadata_engine import (
@@ -65,6 +67,10 @@ def test_2_mcp_catalog_and_sections():
     out_all = listar_libros_y_secciones(incluir_secciones=True)
     assert "Technical Book Catalog" in out_all
     assert "Year:" in out_all
+    out_compact = listar_libros_y_secciones()
+    assert len(out_compact) < len(out_all) and "sections:" not in out_compact
+    one_book = next(iter(sorted(catalog)))
+    assert "sections:" in listar_libros_y_secciones(libro=one_book) or not catalog[one_book].get("sections")
     print(f"  [PASS] Catalog summary returned ({len(out_all)} chars, {len(catalog)} book(s) indexed)")
 
     out_future = listar_libros_y_secciones(min_year=2099)
@@ -74,7 +80,7 @@ def test_2_mcp_catalog_and_sections():
 
 def test_3_where_filtered_retrieval_no_llm():
     print("\n=== [TEST 3] Hybrid + KùzuDB Retrieval & Reranking WITHOUT LLM (WHERE Filters) ===")
-    tutor = AgenticTutorCore()
+    from src.mcp_server import tutor  # reuse the loaded models instead of loading a second copy
 
     # 3a. Standard retrieve_only with min_year and domain filter
     res = tutor.retrieve_only(
@@ -112,16 +118,33 @@ def test_3_where_filtered_retrieval_no_llm():
 
 def test_4_mcp_fragment_code_and_kuzu_tools_no_llm():
     print("\n=== [TEST 4] MCP Tools: buscar_fragmentos_secciones, consultar_grafo_kuzu & buscar_codigo_yaml ===")
-    frag_output = buscar_fragmentos_secciones(
-        consulta="vLLM Kubernetes GPU",
-        top_k=2,
-        domain="cloud_native",
-        min_year=2024,
-        tag="kubernetes",
-    )
+    filtros = dict(consulta="vLLM Kubernetes GPU", top_k=3, domain="cloud_native", min_year=2024, tag="kubernetes")
+    frag_output = buscar_fragmentos_secciones(**filtros)
     assert "Retrieved Sections" in frag_output
-    assert "Year: 2026" in frag_output
-    print("  [PASS] buscar_fragmentos_secciones returned grounded fragments with [2026] badge")
+    assert "(2026)" in frag_output or "(2025)" in frag_output or "(2024)" in frag_output
+    assert "Related Architecture Topology" not in frag_output, "graph header must not leak into MCP output"
+    print("  [PASS] buscar_fragmentos_secciones returned pointers with book, year and section")
+
+    # Two-step retrieval: pointers are much cheaper than full text, and ids can be read back
+    full_output = buscar_fragmentos_secciones(formato="completo", max_tokens=4000, **filtros)
+    assert len(frag_output) < len(full_output) / 2, (len(frag_output), len(full_output))
+    ids = re.findall(r"^\[([0-9a-f]{10})\]", frag_output, flags=re.M)
+    assert len(ids) == 3, f"Expected 3 pointer ids, got {ids}"
+    read_one = leer_fragmentos(ids[0])
+    assert read_one.startswith(f"[{ids[0]}]") and len(read_one) > 200
+    assert leer_fragmentos(f"[{ids[0][:8]}]").startswith(f"[{ids[0]}]"), "truncated/bracketed id should resolve"
+    assert len(leer_fragmentos(ids[0], vecinos=1)) > len(read_one), "vecinos=1 should add context"
+    print(f"  [PASS] two-step: pointers {len(frag_output)} chars vs full {len(full_output)} chars; leer_fragmentos by id works")
+
+    # Budget: a small max_tokens cuts the answer and says how to get the rest
+    cut = leer_fragmentos(" ".join(ids), max_tokens=250)
+    assert len(cut) < 250 * 4 + 400 and ("Not shown" in cut or "cut here" in cut)
+    assert "Unknown ids" in leer_fragmentos("ffffffffff")
+    print("  [PASS] token budget enforced with an explicit continuation hint")
+
+    # Determinism: same input, same bytes (keeps prompt caches valid)
+    assert buscar_fragmentos_secciones(**filtros) == frag_output
+    print("  [PASS] identical query returned identical output")
 
     kuzu_output = consultar_grafo_kuzu("kubernetes")
     assert "KùzuDB Knowledge Graph Relationships" in kuzu_output

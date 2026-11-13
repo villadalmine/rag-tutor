@@ -5,7 +5,7 @@ import pickle
 from typing import Any, Dict, List, Optional
 
 from src import config
-from .base import BaseRetriever, RetrievedChunk
+from .base import BM25_TOKENIZER, BaseRetriever, RetrievedChunk, bm25_tokenize
 
 
 class HybridRetriever(BaseRetriever):
@@ -57,6 +57,13 @@ class HybridRetriever(BaseRetriever):
                     data = pickle.load(f)
                     self._bm25_index = data.get("bm25")
                     self._bm25_corpus = data.get("corpus", [])
+                    if self._bm25_corpus and data.get("tokenizer") != BM25_TOKENIZER:
+                        # Index persisted with the old whitespace tokenizer: rebuild it in memory
+                        # (a few seconds) so queries match words next to punctuation. The next
+                        # `python src/ingest.py` persists the new format and skips this step.
+                        from rank_bm25 import BM25Okapi
+
+                        self._bm25_index = BM25Okapi([bm25_tokenize(i["content"]) for i in self._bm25_corpus])
             except Exception as e:
                 print(f"[Warning] Error loading BM25 index: {e}")
         else:
@@ -163,7 +170,7 @@ class HybridRetriever(BaseRetriever):
         # 2. Lexical Search (BM25 for exact YAML keys, CRDs, CLI flags, and function names)
         if self._bm25_index and self._bm25_corpus:
             try:
-                tokens = query.lower().split()
+                tokens = bm25_tokenize(query)
                 scores = self._bm25_index.get_scores(tokens)
                 ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
 

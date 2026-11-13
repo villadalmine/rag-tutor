@@ -1,8 +1,22 @@
 """Abstract interface and data models for retrieval engines."""
 
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
+
+BM25_TOKENIZER = "word_v2"
+_WORD = re.compile(r"[a-z0-9_]+")
+
+
+def bm25_tokenize(text: str) -> List[str]:
+    """Lexical tokenizer shared by ingestion and retrieval.
+
+    Splits on anything that is not a letter, digit or underscore, so `InferencePool`, "InferencePool,"
+    and "(InferencePool)" all yield the same token. The previous `.lower().split()` kept punctuation
+    glued to the words and missed those matches.
+    """
+    return _WORD.findall(text.lower())
 
 
 @dataclass
