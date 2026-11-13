@@ -656,11 +656,13 @@ def run_ingestion(reset: bool = False, sync_source_dir: Optional[Path] = None):
         )
 
     combined_corpus = existing_corpus + new_corpus_entries
-    combined_tokens = [item["content"].lower().split() for item in combined_corpus]
+    from src.retrievers.base import BM25_TOKENIZER, bm25_tokenize
+
+    combined_tokens = [bm25_tokenize(item["content"]) for item in combined_corpus]
     updated_bm25 = BM25Okapi(combined_tokens)
 
     with open(config.BM25_INDEX_PATH, "wb") as f:
-        pickle.dump({"bm25": updated_bm25, "corpus": combined_corpus}, f)
+        pickle.dump({"bm25": updated_bm25, "corpus": combined_corpus, "tokenizer": BM25_TOKENIZER}, f)
 
     print(
         f"[OK] BM25 index updated with {len(combined_corpus)} total chunks at: {config.BM25_INDEX_PATH}"

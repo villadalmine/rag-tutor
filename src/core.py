@@ -16,6 +16,36 @@ def get_retriever() -> BaseRetriever:
     return HybridRetriever()
 
 
+class OpenAICompatLLM:
+    """Minimal client for any OpenAI-compatible `/chat/completions` endpoint (no extra dependency)."""
+
+    def __init__(self, base_url: str, model: str, api_key: str = "", temperature: float = 0.2,
+                 max_tokens: int = 900, timeout: float = 180):
+        self.url = base_url.rstrip("/") + "/chat/completions"
+        self.model, self.api_key = model, api_key
+        self.temperature, self.max_tokens, self.timeout = temperature, max_tokens, timeout
+
+    def invoke(self, prompt: str) -> str:
+        import requests
+
+        headers = {"Content-Type": "application/json"}
+        if self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
+        resp = requests.post(
+            self.url,
+            headers=headers,
+            timeout=self.timeout,
+            json={
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"] or ""
+
+
 class AgenticTutorCore:
     """Technical Platform Tutor with agentic refinement and architectural grounding."""
 
@@ -25,18 +55,35 @@ class AgenticTutorCore:
         self._initialize_llm()
 
     def _initialize_llm(self):
-        """Initializes connection to local LLM in Ollama."""
+        """Connects the synthesis LLM: an OpenAI-compatible endpoint (LLM_BASE_URL) or Ollama."""
         try:
+            if config.LLM_PROVIDER == "openai":
+                if not config.LLM_BASE_URL:
+                    raise ValueError("LLM_PROVIDER=openai needs LLM_BASE_URL")
+                self._llm = OpenAICompatLLM(
+                    base_url=config.LLM_BASE_URL,
+                    model=config.LLM_MODEL,
+                    api_key=config.LLM_API_KEY,
+                    temperature=config.LLM_TEMPERATURE,
+                    max_tokens=config.LLM_MAX_TOKENS,
+                    timeout=config.LLM_TIMEOUT,
+                )
+                return
             from langchain_ollama import OllamaLLM
 
             self._llm = OllamaLLM(
                 base_url=config.OLLAMA_BASE_URL,
-                model=config.OLLAMA_MODEL,
-                temperature=config.OLLAMA_TEMPERATURE,
+                model=config.LLM_MODEL,
+                temperature=config.LLM_TEMPERATURE,
             )
         except Exception as e:
-            print(f"[Warning] Could not connect to Ollama: {e}. Make sure 'ollama serve' is running.")
+            print(f"[Warning] No synthesis LLM available ({e}). Retrieval-only mode.")
             self._llm = None
+
+    @property
+    def llm_label(self) -> str:
+        """`provider:model` of the synthesis LLM, or a note when there is none."""
+        return f"{config.LLM_PROVIDER}:{config.LLM_MODEL}" if self._llm else "none (retrieve-only)"
 
     def _format_context(self, chunks: List[RetrievedChunk]) -> str:
         """Formats chunks with clear delimiters and citations."""
@@ -212,7 +259,7 @@ Detailed Technical Answer:"""
         try:
             response = self._llm.invoke(system_prompt)
         except Exception as e:
-            print(f"[Warning: Ollama LLM not reachable ({e}) — returning retrieved context directly]")
+            print(f"[Warning: synthesis LLM not reachable ({e}) — returning retrieved context directly]")
             return self.retrieve_only(
                 question,
                 domain=domain,
@@ -230,7 +277,7 @@ Detailed Technical Answer:"""
             "iterations": iterations,
             "retrieved_chunks": len(chunks),
             "retriever_engine": config.RETRIEVER_TYPE,
-            "llm_model": config.OLLAMA_MODEL,
+            "llm_model": self.llm_label,
             "embedding_model": config.EMBEDDING_MODEL_NAME,
             "reranker_model": config.RERANKER_MODEL_NAME,
         }

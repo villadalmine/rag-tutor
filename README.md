@@ -243,17 +243,27 @@ Exposes your book library as native function-calling tools to external AI agents
 python src/mcp_server.py
 ```
 
-#### Exposed Tools:
-1. `listar_libros_y_secciones(domain, min_year, tag, incluir_secciones) -> str`:
-   - Returns the compact book catalog with publication year (`publication_year`), domain, tags, and chapter/section tree without burning tokens on full book contents.
-2. `buscar_fragmentos_secciones(consulta, top_k, domain, code_lang, libro, min_year, tag, seccion) -> str`:
-   - Retrieves only the top-K relevant chunks with SQL-like `WHERE` pre-filters (`min_year`, `domain`, `tag`, `seccion`, `code_lang`, `libro`), requiring zero Ollama LLM overhead.
-3. `consultar_grafo_kuzu(concepto: str) -> str`:
-   - Queries the embedded KùzuDB Knowledge Graph via Cypher to inspect ontological relationships across books, domains, and technical concepts.
-4. `consultar_libros_manning(pregunta: str, domain, code_lang, libro, min_year) -> str`:
-   - Runs hybrid/graph retrieval and triggers the agentic reflection loop with Ollama to return a grounded synthesis with exact citations.
-5. `buscar_codigo_yaml(termino: str, code_lang, min_year) -> str`:
-   - Direct lexical retrieval for exact YAML manifests, CRDs, CLI commands, and code snippets without LLM alteration.
+#### Exposed Tools (two-step, token-budgeted):
+1. `buscar_fragmentos_secciones(consulta, top_k=5, formato, max_tokens, domain, code_lang, libro, min_year, tag, seccion)`:
+   - Hybrid search + reranker, no LLM. Returns **pointers**: `[id] book (year) > chapter > section · ~N tok` plus a one-line excerpt (~90 tokens per hit). `formato="completo"` returns the full text in the same call, within `max_tokens`.
+2. `leer_fragmentos(ids, max_tokens=1500, vecinos=0)`:
+   - Full text of the chosen ids. Adjacent fragments are merged, the splitter overlap is removed, and when the budget cuts the answer the remaining ids are listed. `vecinos` adds the fragments before/after.
+3. `listar_libros_y_secciones(domain, min_year, tag, libro, incluir_secciones=False)`:
+   - One line per book (year, domain, tags). Sections only for the book passed in `libro`.
+4. `buscar_codigo_yaml(termino, code_lang, min_year, max_tokens)`: manifests, CRDs and commands, verbatim.
+5. `consultar_grafo_kuzu(concepto, limite=12)`: knowledge-graph relations of a concept.
+6. `consultar_libros_manning(pregunta, ...)`: synthesis by the tutor's own LLM with citations. Works with **any OpenAI-compatible endpoint** (`LLM_BASE_URL`, `LLM_MODEL`, optional `LLM_API_KEY`: vLLM, KServe, llama.cpp, LiteLLM, agentgateway, OpenRouter) or with Ollama when `LLM_BASE_URL` is unset.
+
+Chunk ids are deterministic (hash of book + text), outputs are plain text without a duplicated
+`structuredContent`, and tool descriptions carry nothing dynamic, so prompt/prefix caches keep hitting.
+
+Deployment-wide caps for small-context local models: `RAG_TUTOR_DEFAULT_FORMAT=completo`,
+`RAG_TUTOR_MAX_HITS=4`, `RAG_TUTOR_MAX_READ_TOKENS=1200`.
+
+#### Run over HTTP (Open WebUI, agentgateway, Claude Code):
+```bash
+python -m src.mcp_server --transport streamable-http --host 127.0.0.1 --port 8766   # → http://127.0.0.1:8766/mcp
+```
 
 #### Claude Desktop / Goose CLI integration (`claude_desktop_config.json`):
 ```json

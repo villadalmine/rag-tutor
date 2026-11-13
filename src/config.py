@@ -42,6 +42,18 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 OLLAMA_TEMPERATURE = float(os.getenv("OLLAMA_TEMPERATURE", "0.2"))
 
+# LLM used by the tutor's own synthesis loop (`ask`, `consultar_libros_manning`, REST API).
+# Any OpenAI-compatible endpoint works: vLLM, KServe LLMInferenceService, llama.cpp, LiteLLM,
+# agentgateway, OpenRouter... Set LLM_BASE_URL (ending in /v1) and LLM_MODEL; LLM_API_KEY if the
+# endpoint asks for one. Without LLM_BASE_URL the tutor keeps using Ollama as before.
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "").rstrip("/")
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai" if LLM_BASE_URL else "ollama").lower()
+LLM_MODEL = os.getenv("LLM_MODEL", OLLAMA_MODEL)
+LLM_API_KEY = os.getenv("LLM_API_KEY", "")
+LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", str(OLLAMA_TEMPERATURE)))
+LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "900"))
+LLM_TIMEOUT = float(os.getenv("LLM_TIMEOUT", "180"))
+
 # Chunking Configuration (Optimized for Code & YAML)
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE", "1200"))
 CHUNK_OVERLAP = int(os.getenv("CHUNK_OVERLAP", "250"))
